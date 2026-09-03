@@ -1,0 +1,4 @@
+[submodule "src/FAST_LIO_Hesai"]
+	path = src/FAST_LIO_Hesai
+	url = https://github.com/HesaiTechnology-Spatial-Perception/FAST_LIO_Hesai.git
+	branch = ROS2
