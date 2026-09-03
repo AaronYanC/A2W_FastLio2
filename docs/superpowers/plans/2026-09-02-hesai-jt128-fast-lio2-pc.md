@@ -12,12 +12,12 @@
 
 ## Global Constraints
 
-- Work only in `/home/dndx/fast_lio_ros2_ws` and its nested `src/FAST_LIO_Hesai` repository.
+- Work only in the repository root and its nested `src/FAST_LIO_Hesai` repository.
 - Do not modify or stop services on `192.168.123.162` or `192.168.123.164`.
 - Do not modify robot networking, lidar destination IP, lidar ports, or lidar parameters.
 - Do not stop Unitree's built-in SLAM service.
 - Do not run or build Hesai Driver in this phase.
-- Do not reuse `/home/dndx/cyclonedds/cyclonedds.xml`, because it pins the obsolete `172.20.10.11` interface.
+- Do not reuse a repository-external legacy CycloneDDS XML that pins the obsolete `172.20.10.11` interface.
 - Do not change the identity `mapping.extrinsic_T` or `mapping.extrinsic_R` without measured or vendor-provided A2-W Pro extrinsics.
 - Do not commit generated build products or process documents to the parent repository rooted above the workspace.
 
@@ -102,7 +102,7 @@
 
 - [x] **Step 2: Build the selected package**
 
-  Run from `/home/dndx/fast_lio_ros2_ws`:
+  Run from the repository root:
 
   ```bash
   source /opt/ros/humble/setup.bash
@@ -123,7 +123,7 @@
   test -x install/fast_lio/lib/fast_lio/fastlio_mapping
   ```
 
-  Expected: package prefix is `/home/dndx/fast_lio_ros2_ws/install/fast_lio`, and `fast_lio fastlio_mapping` is listed.
+  Expected: package prefix is `$A2W_FASTLIO_ROOT/install/fast_lio`, and `fast_lio fastlio_mapping` is listed.
 
 ### Task 3: Validate JT128 configuration and bounded startup
 

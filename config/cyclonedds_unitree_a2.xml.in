@@ -3,7 +3,7 @@
   <Domain id="any">
     <General>
       <Interfaces>
-        <NetworkInterface address="192.168.123.100"/>
+        <NetworkInterface address="@PC_ADDRESS@"/>
       </Interfaces>
       <AllowMulticast>true</AllowMulticast>
     </General>
@@ -11,7 +11,7 @@
       <ParticipantIndex>auto</ParticipantIndex>
       <MaxAutoParticipantIndex>120</MaxAutoParticipantIndex>
       <Peers>
-        <Peer address="192.168.123.164"/>
+        <Peer address="@PEER_ADDRESS@"/>
       </Peers>
     </Discovery>
   </Domain>

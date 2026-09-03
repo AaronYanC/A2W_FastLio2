@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>a2w_fastlio2_bringup</name>
+  <version>1.0.0</version>
+  <description>Portable PC-side bringup for Unitree A2-W, Hesai JT128, and FAST-LIO2.</description>
+  <maintainer email="AaronYanC@users.noreply.github.com">AaronYanC</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>fast_lio</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

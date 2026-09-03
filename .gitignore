@@ -1,0 +1,28 @@
+# ROS 2 / colcon outputs
+/build/
+/install/
+/log/
+
+# Runtime maps and recordings
+/maps/*
+!/maps/.gitkeep
+*.pcd
+*.bag
+*.db3
+*.mcap
+
+# Personal tools and editor state
+/.agents/
+/.codex/
+/.idea/
+/.vscode/
+*~
+
+# Language caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Generated runtime configuration
+cyclonedds.xml
+*.runtime.yaml

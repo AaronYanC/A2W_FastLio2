@@ -2,8 +2,8 @@
 
 ## 目标
 
-在 ThinkBook（Ubuntu 22.04、ROS 2 Humble、x86_64）上的
-`/home/dndx/fast_lio_ros2_ws` 中，完成 Hesai 官方 `FAST_LIO_Hesai`
+在 ThinkBook（Ubuntu 22.04、ROS 2 Humble、x86_64）上的当前工作区中，
+完成 Hesai 官方 `FAST_LIO_Hesai`
 ROS2 分支的可复现构建、JT128 配置检查和无输入启动验证。
 
 本阶段的完成标准是：`fast_lio` 包成功构建并能被 ROS 2 发现；JT128
@@ -54,7 +54,7 @@ ROS2 分支的可复现构建、JT128 配置检查和无输入启动验证。
 colcon build --packages-select fast_lio --symlink-install
 ```
 
-只构建 `fast_lio`，不加载或构建 `/home/dndx/hesai_ros2_ws`。若旧构建缓存
+只构建 `fast_lio`，不加载或构建其他 Hesai Driver 工作区。若旧构建缓存
 导致与源码状态不一致，仅清理 `fast_lio` 对应的构建产物，不删除其他目录。
 
 ### JT128 参数

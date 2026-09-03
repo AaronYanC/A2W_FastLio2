@@ -7,11 +7,10 @@
         filter_size_map: 0.3
         cube_side_length: 1000.0
         runtime_pos_log_enable: false
-        map_file_path: "/home/dndx/fast_lio_ros2_ws/maps/jt128_map.pcd"
 
         common:
-            lid_topic:  "/lidar_points"
-            imu_topic:  "/lidar_imu"
+            lid_topic: "/lidar_points"
+            imu_topic: "/lidar_imu"
             time_sync_en: false
             time_offset_lidar_to_imu: 0.0
             imu_gyr_unit: "auto"
@@ -42,9 +41,9 @@
             scan_bodyframe_pub_en: true
 
         pcd_save:
-            pcd_save_en: true
+            pcd_save_en: false
             interval: -1
-            leaf_size: 0.0
+            leaf_size: 0.1
 
         trajectory_save:
             tum_en: false
