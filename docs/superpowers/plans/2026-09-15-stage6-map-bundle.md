@@ -102,7 +102,7 @@ string resolved_path
   `a2w_fastlio_map::MapBundleWriter`; `a2w_fastlio_map` remains ROS-message independent and does not
   depend on Mapping or messages. The service never subscribes to preview map as source data.
 - [x] **Step 3: Run full build/tests and a CLI load/verify command against a generated temporary bundle.**
-- [ ] **Step 4: Commit and push**:
+- [x] **Step 4: Commit and push**:
 
 ```bash
 git add src/a2w_fastlio_map src/a2w_fastlio_msgs src/a2w_fastlio_mapping tests scripts README.md

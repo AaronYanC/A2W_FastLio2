@@ -13,7 +13,7 @@ earlier Stages:
 - [x] Stage 3: `2026-09-15-stage3-registration-pipeline.md`
 - [x] Stage 4: `2026-09-15-stage4-pose-graph.md`
 - [x] Stage 5: `2026-09-15-stage5-mapping-outputs.md`
-- [ ] Stage 6: `2026-09-15-stage6-map-bundle.md`
+- [x] Stage 6: `2026-09-15-stage6-map-bundle.md`
 - [ ] Stage 7: `2026-09-15-stage7-localization.md`
 - [ ] Stage 8: `2026-09-15-stage8-localization-monitor.md`
 - [ ] Stage 9: `2026-09-15-stage9-global-relocalization.md`
