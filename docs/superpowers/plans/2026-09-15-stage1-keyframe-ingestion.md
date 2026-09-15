@@ -230,7 +230,7 @@ git commit -m "feat(mapping): add threshold-based keyframe manager"
 - Produces: `FrontendMessageResult { bool success; std::string error; FrontendFrame frame; }`.
 - Produces: `makeFrontendFrame(const nav_msgs::msg::Odometry&, const sensor_msgs::msg::PointCloud2&, std::string_view expected_odom_frame, std::string_view expected_body_frame) -> FrontendMessageResult`.
 
-- [ ] **Step 1: Write a failing conversion test with literal message data**
+- [x] **Step 1: Write a failing conversion test with literal message data**
 
 Construct odometry with stamp `12.345 s`, frame `camera_init`, child `body`, translation
 `[1,2,3]`, identity quaternion. Construct a real `pcl::PointCloud<pcl::PointXYZINormal>`
@@ -238,22 +238,22 @@ with one point `[4,5,6,intensity=7]`, convert it using `pcl::toROSMsg`, and set 
 and frame `body`. Assert the result stamp is `12345000000 ns`, pose is literal `[1,2,3]`,
 and the stored `PointXYZI` retains `[4,5,6,7]` while ignoring normal/curvature fields.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 Expected: compilation fails because `frontend_message_adapter.hpp` does not exist.
 
-- [ ] **Step 3: Implement the minimal conversion**
+- [x] **Step 3: Implement the minimal conversion**
 
 Reject mismatched timestamps, unexpected non-empty frames, invalid pose values, and empty point
 clouds. Use `pcl::fromROSMsg` for the actual field conversion. Deep-copy into an owned cloud so
 later callback/message destruction cannot alter a keyframe.
 
-- [ ] **Step 4: Verify GREEN and add ownership mutation test**
+- [x] **Step 4: Verify GREEN and add ownership mutation test**
 
 After conversion, mutate/destroy the source ROS message and assert the returned PCL cloud remains
 unchanged. This catches accidental aliasing rather than asserting implementation details.
 
-- [ ] **Step 5: Add failing rejection tests, then implement each minimal branch**
+- [x] **Step 5: Add failing rejection tests, then implement each minimal branch**
 
 Use separate tests for:
 
@@ -266,7 +266,7 @@ Use separate tests for:
 An empty expected frame parameter disables only that specific frame-name check; timestamp and data
 validation always remain active.
 
-- [ ] **Step 6: Run both packages and commit**
+- [x] **Step 6: Run both packages and commit**
 
 ```bash
 colcon build --symlink-install --packages-select a2w_fastlio_common a2w_fastlio_mapping
