@@ -1,0 +1,12 @@
+/**:
+  ros__parameters:
+    scan_context:
+      # Offline defaults inherited from the pinned Scan Context reference.
+      # These values are not tuned or validated against the A2W/JT128 hardware.
+      rings: 20
+      sectors: 60
+      max_radius_m: 80.0
+      sensor_height_m: 2.0
+      top_k: 5
+      exclude_recent: 30
+      max_distance: 0.2

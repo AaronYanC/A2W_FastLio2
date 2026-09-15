@@ -2,9 +2,10 @@
 <package format="3">
   <name>a2w_fastlio_common</name>
   <version>0.1.0</version>
-  <description>ROS-independent shared data types for A2W FAST-LIO backends.</description>
+  <description>ROS-independent shared data types and algorithms for A2W FAST-LIO backends.</description>
   <maintainer email="AaronYanC@users.noreply.github.com">AaronYanC</maintainer>
   <license>Apache-2.0</license>
+  <license>CC-BY-NC-SA-4.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>eigen</depend>

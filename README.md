@@ -99,6 +99,28 @@ Stage 1 只生成关键帧，尚不包含 Scan Context、回环、Quatro、Nano-
   frontend_map_file:=/data/maps/frontend_map.pcd
 ```
 
+## Stage 2：Scan Context / Top-K（离线实现）
+
+Stage 2 在 `a2w_fastlio_common` 中提供 ROS 无关的抽象接口：
+
+```text
+PlaceRecognition → ScanContextPlaceRecognition
+DescriptorIndex  → ScanContextIndex
+```
+
+接口支持参数化极坐标描述子、旋转 yaw hint、近期关键帧排除和稳定 Top-K 排名。
+重复结构会保留为多个候选，Scan Context 不会直接确认回环或全局位置。默认参数位于：
+
+```text
+src/a2w_fastlio_mapping/config/scan_context.yaml
+```
+
+这些参数来自固定上游算法的离线初值，并未通过 A2W/JT128 实机调参。Stage 2 当前状态：
+
+```text
+Offline implementation and verification complete; JT128 hardware validation pending.
+```
+
 ## 建图并保存 PCD
 
 ```bash
@@ -164,7 +186,7 @@ A2W_DDS_PEER=192.168.123.164 \
 ├── scripts/                      # 初始化、编译、检查和运行入口
 ├── src/
 │   ├── FAST_LIO_Hesai/           # 禾赛官方固定版本 submodule
-│   ├── a2w_fastlio_common/        # ROS 无关的共享后端数据类型
+│   ├── a2w_fastlio_common/        # ROS 无关的共享后端类型和算法接口
 │   ├── a2w_fastlio_mapping/       # Stage 1 关键帧接入
 │   └── a2w_fastlio2_bringup/     # A2-W JT128 配置和 launch
 └── tests/                        # 可迁移性与配置行为测试
@@ -179,7 +201,7 @@ A2W_DDS_PEER=192.168.123.164 \
 测试覆盖运行时 DDS 配置生成、从任意当前目录启动、地图路径传递以及仓库本机路径
 清理。完整交付还应运行 `./scripts/build.sh`。
 
-## 算法边界
+## 算法与许可证边界
 
 FAST-LIO2 提供紧耦合激光—惯性里程计和增量地图，但当前工程不包含回环检测、
 位姿图全局优化或多会话地图融合。大范围或长时间运行仍可能累积漂移；若后续需要
@@ -187,3 +209,9 @@ FAST-LIO2 提供紧耦合激光—惯性里程计和增量地图，但当前工�
 
 雷达—IMU 外参目前沿用配置中的单位变换，仅适合作为当前链路基线。正式测量或导航
 前应使用厂商参数或标定结果确认，但该工作不由本仓库脚本自动执行。
+
+Scan Context 核心来自固定版本 `engcang/scancontext_tro`，上游声明为
+CC BY-NC-SA 4.0。它与本项目原创代码的许可证边界、来源和适配内容记录在
+`third_party/THIRD_PARTY_NOTICES.md` 和对应 `UPSTREAM.md` 中。该许可证限制商业
+使用，因此当前仓库不能整体笼统声明为 Apache-2.0，也不能在未完成许可证审查前
+声称允许商业交付。
