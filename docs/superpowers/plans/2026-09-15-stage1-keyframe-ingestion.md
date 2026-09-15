@@ -76,7 +76,7 @@ src/a2w_fastlio2_bringup/launch/
 - Produces: `FrontendFrame { int64_t stamp_ns; Pose3d odom_pose; CloudConstPtr body_cloud; }`.
 - Produces: `KeyFrame { uint64_t id; int64_t stamp_ns; Pose3d odom_pose; Pose3d optimized_pose; CloudPtr body_cloud; std::vector<float> scan_context_descriptor; }`.
 
-- [ ] **Step 1: Add the package scaffold and failing data-contract test**
+- [x] **Step 1: Add the package scaffold and failing data-contract test**
 
 Create an ament package that builds this test before either header exists:
 
@@ -95,7 +95,7 @@ TEST(KeyFrameTypes, DefaultsPoseToIdentityAndDescriptorToEmpty) {
 }
 ```
 
-- [ ] **Step 2: Run the test and verify RED**
+- [x] **Step 2: Run the test and verify RED**
 
 Run:
 
@@ -106,11 +106,11 @@ colcon build --symlink-install --packages-select a2w_fastlio_common
 
 Expected: compilation fails because `a2w_fastlio_common/types.hpp` is missing.
 
-- [ ] **Step 3: Implement the minimal shared types**
+- [x] **Step 3: Implement the minimal shared types**
 
 Use `pcl::PointXYZI` for backend storage. Initialize both poses to identity, both cloud pointers to valid empty clouds, and the descriptor to an empty vector. Do not add ROS message types or algorithm methods.
 
-- [ ] **Step 4: Run the package test and verify GREEN**
+- [x] **Step 4: Run the package test and verify GREEN**
 
 Run:
 
@@ -122,7 +122,7 @@ colcon test-result --verbose
 
 Expected: build succeeds and `KeyFrameTypes.DefaultsPoseToIdentityAndDescriptorToEmpty` passes.
 
-- [ ] **Step 5: Commit the shared contract**
+- [x] **Step 5: Commit the shared contract**
 
 ```bash
 git add src/a2w_fastlio_common
