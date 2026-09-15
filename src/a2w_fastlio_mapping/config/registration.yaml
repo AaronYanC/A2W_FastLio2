@@ -1,0 +1,32 @@
+/**:
+  ros__parameters:
+    # Offline-safe starting values. They are not JT128 hardware tuned.
+    local_map:
+      neighbor_keyframes_before: 5
+      neighbor_keyframes_after: 5
+      voxel_leaf_m: 0.2
+      max_points: 200000
+    quatro:
+      fpfh_normal_radius_m: 0.5
+      fpfh_radius_m: 0.8
+      noise_bound_m: 0.25
+      rotation_gnc_factor: 1.4
+      rotation_cost_threshold: 0.0001
+      rotation_max_iterations: 100
+      estimate_scale: false
+      optimized_matching: true
+      descriptor_distance_threshold: 30.0
+      maximum_correspondences: 500
+      minimum_points: 20
+    nano_gicp:
+      maximum_correspondence_distance_m: 2.0
+      thread_count: 0
+      correspondence_randomness: 20
+      maximum_iterations: 64
+      transformation_epsilon: 0.001
+      rotation_epsilon: 0.001
+      regularization_method: 3
+      fitness_score_max_range_m: 1.0
+      minimum_points: 20
+    pipeline:
+      evidence_distance_m: 0.5

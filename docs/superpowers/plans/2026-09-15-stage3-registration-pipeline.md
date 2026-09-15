@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Reuse one common implementation for Mapping, Localization, and Relocalization.
-- Pin Quatro `d27109b`, Nano-GICP `b21e79e`, and TEASER++ `v1.0/3f47dd0`.
+- Pin Quatro `d27109b`, Nano-GICP `b21e79e`, TEASER++ `974574c` (first upstream Quatro API revision), and PMC `a2dfd61`.
 - Do not import catkin or ROS 1 glue and do not change algorithm mathematics without a reproducing test.
 - Do not implement a persistent Submap Manager.
 
@@ -29,9 +29,9 @@
 **Interfaces:**
 - Produces: `RegistrationResult`, `CoarseRegistration::align()`, and `FineRegistration::align()`.
 
-- [ ] **Step 1: Write RED tests** for default failure result, finite transform validation, rejection reason preservation, and fake `CoarseRegistration`/`FineRegistration` implementations callable only through interfaces.
-- [ ] **Step 2: Run RED**; expect missing types.
-- [ ] **Step 3: Implement the exact neutral API**; `success` requires a finite rigid transform and explicit convergence.
+- [x] **Step 1: Write RED tests** for default failure result, finite transform validation, rejection reason preservation, and fake `CoarseRegistration`/`FineRegistration` implementations callable only through interfaces.
+- [x] **Step 2: Run RED**; expect missing types.
+- [x] **Step 3: Implement the exact neutral API**; `success` requires a finite rigid transform and explicit convergence.
 
 ```cpp
 struct RegistrationResult {
@@ -48,7 +48,7 @@ virtual RegistrationResult align(
   const CloudConstPtr &, const CloudConstPtr &,
   const std::optional<Pose3d> &) const = 0;
 ```
-- [ ] **Step 4: Run GREEN** for the common suite.
+- [x] **Step 4: Run GREEN** for the common suite.
 
 ### Task 2: Temporary LocalMapBuilder
 
@@ -61,9 +61,9 @@ virtual RegistrationResult align(
 - Consumes: `KeyFrameProvider::get(id)` and `LocalMapConfig`.
 - Produces: `LocalMapResult build(center_id, before, after, provider)`.
 
-- [ ] **Step 1: Write RED tests** proving neighborhood bounds, pose application, deterministic voxel filtering, maximum-point enforcement, missing-ID errors, and equal source/target neighborhood policy.
-- [ ] **Step 2: Run RED**; expect missing builder.
-- [ ] **Step 3: Implement the provider/builder contract**; transform each body cloud by its supplied pose, then voxel-filter and deterministically cap points.
+- [x] **Step 1: Write RED tests** proving neighborhood bounds, pose application, deterministic voxel filtering, maximum-point enforcement, missing-ID errors, and equal source/target neighborhood policy.
+- [x] **Step 2: Run RED**; expect missing builder.
+- [x] **Step 3: Implement the provider/builder contract**; transform each body cloud by its supplied pose, then voxel-filter and deterministically cap points.
 
 ```cpp
 class KeyFrameProvider {
@@ -75,13 +75,13 @@ LocalMapResult build(
   std::uint64_t center_id, std::size_t before, std::size_t after,
   const KeyFrameProvider & provider) const;
 ```
-- [ ] **Step 4: Run GREEN** and verify no ROS headers enter the target.
+- [x] **Step 4: Run GREEN** and verify no ROS headers enter the target.
 
 ### Task 3: Curated registration dependencies and adapters
 
 **Files:**
 - Create: `third_party/{Quatro,nano_gicp}/` curated source, license, CMake, and provenance files
-- Add submodule: `third_party/TEASER-plusplus` at `3f47dd0`
+- Add submodules: `third_party/TEASER-plusplus` at `974574c` and `third_party/pmc` at `a2dfd61`
 - Create: `src/a2w_fastlio_common/include/a2w_fastlio_common/{quatro_registration.hpp,nano_gicp_registration.hpp}`
 - Create: `src/a2w_fastlio_common/src/{quatro_registration.cpp,nano_gicp_registration.cpp}`
 - Test: `src/a2w_fastlio_common/test/test_registration_synthetic.cpp`
@@ -91,11 +91,11 @@ LocalMapResult build(
   `NanoGicpRegistration final : FineRegistration`.
 - Keeps all TEASER++, Quatro, and Nano-GICP types private to `.cpp` or private implementation.
 
-- [ ] **Step 1: Write RED synthetic tests** using an asymmetric 3-D cloud transformed by known translation/yaw; assert Quatro produces a finite coarse transform and Nano-GICP reduces pose error and fitness when given the coarse guess. Add empty, too-small, NaN, and degenerate-line cases.
-- [ ] **Step 2: Run RED**; expect missing concrete adapters.
-- [ ] **Step 3: Import only used core files**, retain license headers, add `UPSTREAM.md`, and build non-catkin targets. Configure TEASER++ with `BUILD_TESTS=OFF`, `BUILD_DOC=OFF`, `BUILD_PYTHON_BINDINGS=OFF`, `BUILD_MATLAB_BINDINGS=OFF`, `BUILD_WITH_MARCH_NATIVE=OFF`.
-- [ ] **Step 4: Implement adapters** that validate data and parameters, measure elapsed time, translate upstream results to `RegistrationResult`, and expose no upstream type in public signatures.
-- [ ] **Step 5: Run GREEN**. Use deterministic seeds and tolerances wide enough for x86_64 CI but strict enough to reject the identity result.
+- [x] **Step 1: Write RED synthetic tests** using an asymmetric 3-D cloud transformed by known translation/yaw; assert Quatro produces a finite coarse transform and Nano-GICP reduces pose error and fitness when given the coarse guess. Add empty, too-small, NaN, and degenerate-line cases.
+- [x] **Step 2: Run RED**; expect missing concrete adapters.
+- [x] **Step 3: Import only used core files**, retain license headers, add `UPSTREAM.md`, and build private non-catkin targets. Compile TEASER++ `registration.cc`/`graph.cc` with fixed PMC; exclude TEASER++ I/O, tests, bindings, and its duplicate FPFH/matcher sources because Quatro provides those implementations.
+- [x] **Step 4: Implement adapters** that validate data and parameters, measure elapsed time, translate upstream results to `RegistrationResult`, and expose no upstream type in public signatures.
+- [x] **Step 5: Run GREEN**. Use deterministic seeds and tolerances wide enough for x86_64 CI but strict enough to reject the identity result.
 
 ### Task 4: Validators and coarse-to-fine pipeline
 
@@ -109,9 +109,9 @@ LocalMapResult build(
 - Consumes: abstract coarse/fine registrars and `MatchValidator`.
 - Produces: `PipelineResult` containing coarse, fine, validation, and final transform records.
 
-- [ ] **Step 1: Write RED tests** for convergence, maximum fitness, minimum overlap/correspondences, maximum translation/rotation jump, candidate separation, coarse failure short-circuit, fine initial-guess handoff, and explicit rejection strings.
-- [ ] **Step 2: Run RED**; expect missing validators/pipeline.
-- [ ] **Step 3: Implement `RegistrationPipeline` using only interfaces** and a validator. Compute overlap/correspondences with a shared nearest-neighbor metric so Quatro and Nano-GICP report comparable evidence.
+- [x] **Step 1: Write RED tests** for convergence, maximum fitness, minimum overlap/correspondences, maximum translation/rotation jump, candidate separation, coarse failure short-circuit, fine initial-guess handoff, and explicit rejection strings.
+- [x] **Step 2: Run RED**; expect missing validators/pipeline.
+- [x] **Step 3: Implement `RegistrationPipeline` using only interfaces** and a validator. Compute overlap/correspondences with a shared nearest-neighbor metric so Quatro and Nano-GICP report comparable evidence.
 
 ```cpp
 PipelineResult run(
@@ -121,7 +121,7 @@ ValidationResult validate(
   const RegistrationResult & result,
   const ValidationContext & context) const;
 ```
-- [ ] **Step 4: Run GREEN**, including a false repeated-structure candidate that converges but is rejected by ambiguity or overlap.
+- [x] **Step 4: Run GREEN**, including a false repeated-structure candidate that converges but is rejected by ambiguity or overlap.
 
 ### Task 5: Stage 3 checkpoint
 
@@ -132,9 +132,9 @@ ValidationResult validate(
 **Interfaces:**
 - Produces: installed common algorithm targets and validated YAML parameters consumed by later Stages.
 
-- [ ] **Step 1: Add RED contract tests** for abstract-only upper-layer includes and complete YAML coverage.
-- [ ] **Step 2: Add validated offline defaults** and dependency installation/build instructions without describing them as JT128 tuned.
-- [ ] **Step 3: Run the full verification commands from Stage 2 Task 4.**
+- [x] **Step 1: Add RED contract tests** for abstract-only upper-layer includes and complete YAML coverage.
+- [x] **Step 2: Add validated offline defaults** and dependency installation/build instructions without describing them as JT128 tuned.
+- [x] **Step 3: Run the full verification commands from Stage 2 Task 4.**
 - [ ] **Step 4: Commit and push**:
 
 ```bash

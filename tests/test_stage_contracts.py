@@ -45,6 +45,66 @@ class ScanContextConfigurationTests(unittest.TestCase):
         self.assertLessEqual(parameters["max_distance"], 1.0)
 
 
+class RegistrationConfigurationTests(unittest.TestCase):
+    @staticmethod
+    def parameters(filename):
+        config_path = (
+            REPOSITORY_ROOT
+            / "src"
+            / "a2w_fastlio_mapping"
+            / "config"
+            / filename
+        )
+        with config_path.open("r", encoding="utf-8") as stream:
+            return yaml.safe_load(stream)["/**"]["ros__parameters"]
+
+    def test_registration_profile_covers_shared_pipeline(self):
+        parameters = self.parameters("registration.yaml")
+        self.assertEqual(set(parameters), {"local_map", "quatro", "nano_gicp", "pipeline"})
+        self.assertEqual(
+            set(parameters["local_map"]),
+            {"neighbor_keyframes_before", "neighbor_keyframes_after", "voxel_leaf_m", "max_points"},
+        )
+        self.assertEqual(
+            set(parameters["quatro"]),
+            {
+                "fpfh_normal_radius_m", "fpfh_radius_m", "noise_bound_m",
+                "rotation_gnc_factor", "rotation_cost_threshold",
+                "rotation_max_iterations", "estimate_scale", "optimized_matching",
+                "descriptor_distance_threshold", "maximum_correspondences", "minimum_points",
+            },
+        )
+        self.assertEqual(
+            set(parameters["nano_gicp"]),
+            {
+                "maximum_correspondence_distance_m", "thread_count",
+                "correspondence_randomness", "maximum_iterations",
+                "transformation_epsilon", "rotation_epsilon", "regularization_method",
+                "fitness_score_max_range_m", "minimum_points",
+            },
+        )
+        self.assertEqual(set(parameters["pipeline"]), {"evidence_distance_m"})
+        self.assertGreater(parameters["local_map"]["max_points"], 0)
+        self.assertGreater(parameters["quatro"]["minimum_points"], 2)
+        self.assertGreater(parameters["nano_gicp"]["minimum_points"], 2)
+        self.assertGreater(parameters["pipeline"]["evidence_distance_m"], 0.0)
+
+    def test_loop_validation_profile_covers_all_rejection_gates(self):
+        parameters = self.parameters("loop_validation.yaml")["loop_validation"]
+        self.assertEqual(
+            set(parameters),
+            {
+                "maximum_fitness", "minimum_overlap", "minimum_correspondences",
+                "maximum_translation_jump_m", "maximum_rotation_jump_rad",
+                "minimum_candidate_distance_separation",
+            },
+        )
+        self.assertGreaterEqual(parameters["maximum_fitness"], 0.0)
+        self.assertGreaterEqual(parameters["minimum_overlap"], 0.0)
+        self.assertLessEqual(parameters["minimum_overlap"], 1.0)
+        self.assertGreater(parameters["minimum_correspondences"], 0)
+
+
 class PackageDependencyTests(unittest.TestCase):
     def test_internal_package_graph_is_acyclic(self):
         packages = {}
@@ -92,7 +152,15 @@ class PackageDependencyTests(unittest.TestCase):
 class AlgorithmBoundaryTests(unittest.TestCase):
     @staticmethod
     def concrete_algorithm_references(source_root):
-        forbidden = ("scan_context_place_recognition.hpp", "scancontext_tro/")
+        forbidden = (
+            "scan_context_place_recognition.hpp",
+            "quatro_registration.hpp",
+            "nano_gicp_registration.hpp",
+            "scancontext_tro/",
+            "quatro/",
+            "nano_gicp/",
+            "teaser/",
+        )
         references = []
         for source in source_root.rglob("*"):
             if source.suffix not in {".cpp", ".cc", ".h", ".hpp"}:

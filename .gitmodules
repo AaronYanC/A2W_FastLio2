@@ -2,3 +2,9 @@
 	path = src/FAST_LIO_Hesai
 	url = https://github.com/HesaiTechnology-Spatial-Perception/FAST_LIO_Hesai.git
 	branch = ROS2
+[submodule "third_party/TEASER-plusplus"]
+	path = third_party/TEASER-plusplus
+	url = https://github.com/MIT-SPARK/TEASER-plusplus.git
+[submodule "third_party/pmc"]
+	path = third_party/pmc
+	url = https://github.com/jingnanshi/pmc.git

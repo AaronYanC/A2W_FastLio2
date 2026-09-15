@@ -67,6 +67,7 @@ A2W_FastLio2/
 │   ├── Quatro/
 │   ├── nano_gicp/
 │   ├── TEASER-plusplus/
+│   ├── pmc/
 │   └── THIRD_PARTY_NOTICES.md
 ├── src/
 │   ├── FAST_LIO_Hesai/
@@ -176,13 +177,16 @@ I/O, launch files, FAST-LIO, Livox drivers, Topic glue, or TF glue.
 | Scan Context | `engcang/scancontext_tro` | `c8ef5b496a159cdfd7fa4761121178f25cd0a6bb` | `Scancontext.cpp/.h`, KD-tree adapter, nanoflann | Remove unused ROS include, add namespace/config constructor, const-correct API; equations unchanged | ROS-free build, parameterized rings/sectors/radius/height and Top-K | CC BY-NC-SA 4.0 | `ScanContextPlaceRecognition` |
 | Quatro | `engcang/Quatro` | `d27109bd6a1798e9cf2e0c2a4daac6af16e7bc23` | FPFH, matcher, Quatro module core | New non-catkin CMake adapter; source changes only for demonstrated compiler compatibility | Build in ROS 2 workspace without importing ROS 1 packaging | `License` GPL-3.0; README/package metadata also claims CC BY-NC-SA 4.0 | `QuatroRegistration` |
 | Nano-GICP | `engcang/nano_gicp` | `b21e79edcceb7c6e86ec0dfec90f451b796b683a` | Nano-GICP, LSQ, GICP, nanoflann core | New non-catkin CMake adapter; no planned math changes | Build one shared fine-registration implementation | MIT plus retained BSD-3-Clause notices | `NanoGicpRegistration` |
-| TEASER++ | `MIT-SPARK/TEASER-plusplus` | tag `v1.0`, `3f47dd048e5585992fea41089e7dbe89f88509bd` | `teaser_registration` and required libraries | No source change; disable tests, docs, Python, MATLAB, and unused feature targets | Fixed Quatro solver dependency | MIT | Private dependency of Quatro target |
+| TEASER++ | `MIT-SPARK/TEASER-plusplus` | `974574c2fe8d8523e9f7d7be0500c427ba1d1f9a` | `registration.cc`, `graph.cc`, and public solver headers | Forced compatibility include supplies the legacy unqualified `vector`; pinned source stays unchanged; private CMake target excludes I/O, tests, bindings, and duplicate FPFH/matcher implementations | First upstream revision that adds the Quatro solver API required by the pinned Quatro core | MIT | Private dependency of Quatro target |
+| PMC | `jingnanshi/pmc` | `a2dfd612a501bca83c47206255dbbff619481f97` | Maximum-clique library sources and headers | No source change; custom private CMake target omits CLI/test programs | Fixed transitive dependency of TEASER++ registration | GPL-3.0-or-later | Private dependency of TEASER++ target |
 | GTSAM | Ubuntu system package | `4.1.1` | GTSAM and iSAM2 public API | None; not vendored | Already available and avoids a second GTSAM build | BSD-3-Clause | `PoseGraphOptimizer` |
 
 Scan Context, Quatro, and Nano-GICP snapshots contain only used algorithm files, their original
 license, and an `UPSTREAM.md` recording source revision and local compatibility patches. TEASER++
-is a pinned non-ROS submodule because selectively copying its transitive solver implementation
-would make provenance and maintenance worse. GTSAM remains a system dependency.
+and PMC are pinned non-ROS submodules because selectively copying their transitive solver
+implementations would make provenance and maintenance worse. Quatro's own FPFH and matcher are
+compiled exactly once; the same-named TEASER++ feature sources are intentionally excluded. GTSAM
+remains a system dependency.
 
 ## 6. Mapping data flow
 

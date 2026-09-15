@@ -198,9 +198,9 @@ grep -F "rosdep PWD=/tmp ARGS=install --from-paths $repository_root/src --ignore
 grep -F "git PWD=/tmp ARGS=-C $repository_root submodule update --init --recursive " \
     "$tool_capture" >/dev/null || fail "build did not initialize recursive submodules"
 grep -F \
-    "colcon PWD=$repository_root ARGS=build --symlink-install --cmake-args -DPython3_EXECUTABLE=/usr/bin/python3 -DPYTHON_EXECUTABLE=/usr/bin/python3 " \
+    "colcon PWD=$repository_root ARGS=build --symlink-install --packages-ignore teaserpp pmc --cmake-args -DPython3_EXECUTABLE=/usr/bin/python3 -DPYTHON_EXECUTABLE=/usr/bin/python3 " \
     "$tool_capture" >/dev/null || \
-    fail "build did not pin both modern and legacy ROS Python CMake variables"
+    fail "build did not isolate private submodules and pin ROS Python CMake variables"
 
 : >"$tool_capture"
 (

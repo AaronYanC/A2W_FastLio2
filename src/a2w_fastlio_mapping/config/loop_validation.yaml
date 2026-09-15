@@ -1,0 +1,10 @@
+/**:
+  ros__parameters:
+    # Conservative offline defaults; final values require JT128 validation.
+    loop_validation:
+      maximum_fitness: 0.25
+      minimum_overlap: 0.35
+      minimum_correspondences: 30
+      maximum_translation_jump_m: 5.0
+      maximum_rotation_jump_rad: 1.0
+      minimum_candidate_distance_separation: 0.05

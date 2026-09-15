@@ -121,6 +121,32 @@ src/a2w_fastlio_mapping/config/scan_context.yaml
 Offline implementation and verification complete; JT128 hardware validation pending.
 ```
 
+## Stage 3：共享粗到细配准（离线实现）
+
+Stage 3 在 `a2w_fastlio_common` 内提供统一接口和一份共享实现：
+
+```text
+CoarseRegistration -> QuatroRegistration
+FineRegistration   -> NanoGicpRegistration
+RegistrationResult -> MatchValidator -> RegistrationPipeline
+```
+
+Mapping、Localization 与 Global Relocalization 上层只依赖抽象接口；Quatro、TEASER++
+和 Nano-GICP 类型不会出现在上层头文件中。`LocalMapBuilder` 从附近关键帧临时构图，
+当前没有持久化 Submap Manager。流水线以统一最近邻口径计算 fitness、overlap 和匹配数，
+并要求候选间隔与几何证据同时通过，Scan Context Top-1 或单独的 `hasConverged()` 都不能
+确认回环。
+
+离线默认参数位于：
+
+```text
+src/a2w_fastlio_mapping/config/registration.yaml
+src/a2w_fastlio_mapping/config/loop_validation.yaml
+```
+
+这些数值只通过合成数据测试，并非 A2W/JT128 实机调参结果。Stage 3 算法层尚未改变
+现有 FAST-LIO 前端，也尚未发布回环、优化 TF 或优化地图。
+
 ## 建图并保存 PCD
 
 ```bash
@@ -187,7 +213,7 @@ A2W_DDS_PEER=192.168.123.164 \
 ├── src/
 │   ├── FAST_LIO_Hesai/           # 禾赛官方固定版本 submodule
 │   ├── a2w_fastlio_common/        # ROS 无关的共享后端类型和算法接口
-│   ├── a2w_fastlio_mapping/       # Stage 1 关键帧接入
+│   ├── a2w_fastlio_mapping/       # 关键帧接入与后续 Mapping 后端
 │   └── a2w_fastlio2_bringup/     # A2-W JT128 配置和 launch
 └── tests/                        # 可迁移性与配置行为测试
 ```
@@ -203,15 +229,15 @@ A2W_DDS_PEER=192.168.123.164 \
 
 ## 算法与许可证边界
 
-FAST-LIO2 提供紧耦合激光—惯性里程计和增量地图，但当前工程不包含回环检测、
-位姿图全局优化或多会话地图融合。大范围或长时间运行仍可能累积漂移；若后续需要
-全局一致地图，应单独集成回环/图优化方案，并在不影响机器人自带服务的前提下验证。
+FAST-LIO2 仍是唯一前端。当前分支已有离线 Scan Context 与粗到细配准算法层，
+但在后续 Stage 接入回环因子、GTSAM 和运行时输出前，不应将它描述为已完成全局
+优化的建图系统。
 
 雷达—IMU 外参目前沿用配置中的单位变换，仅适合作为当前链路基线。正式测量或导航
 前应使用厂商参数或标定结果确认，但该工作不由本仓库脚本自动执行。
 
 Scan Context 核心来自固定版本 `engcang/scancontext_tro`，上游声明为
 CC BY-NC-SA 4.0。它与本项目原创代码的许可证边界、来源和适配内容记录在
-`third_party/THIRD_PARTY_NOTICES.md` 和对应 `UPSTREAM.md` 中。该许可证限制商业
-使用，因此当前仓库不能整体笼统声明为 Apache-2.0，也不能在未完成许可证审查前
-声称允许商业交付。
+`third_party/THIRD_PARTY_NOTICES.md` 和对应 `UPSTREAM.md` 中。Quatro 与 PMC 还带有 GPL
+条款，Quatro 上游元数据存在 GPL/CC BY-NC-SA 许可信号不一致。因此当前仓库
+不能整体笼统声明为 Apache-2.0，也不能在未完成许可证审查前声称允许商业交付。

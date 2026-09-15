@@ -24,6 +24,7 @@ set -u
 "$git_bin" -C "$repository_root" submodule update --init --recursive
 cd "$repository_root"
 exec "$colcon_bin" build --symlink-install \
+    --packages-ignore teaserpp pmc \
     --cmake-args \
     "-DPython3_EXECUTABLE=$python_executable" \
     "-DPYTHON_EXECUTABLE=$python_executable" \
