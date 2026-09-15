@@ -63,12 +63,6 @@ target_include_directories(optimized_map_builder PUBLIC
 )
 ament_target_dependencies(optimized_map_builder a2w_fastlio_common)
 
-add_library(global_tf_ownership src/global_tf_ownership.cpp)
-target_include_directories(global_tf_ownership PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
-)
-
 add_library(map_bundle_service src/map_bundle_service.cpp)
 target_include_directories(map_bundle_service PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -82,7 +76,7 @@ ament_target_dependencies(mapping_ingress_node message_filters nav_msgs rclcpp s
 
 add_executable(mapping_backend_node src/mapping_backend_node.cpp)
 target_link_libraries(mapping_backend_node
-  frontend_message_adapter global_tf_ownership loop_pipeline map_bundle_service map_odom_manager
+  frontend_message_adapter loop_pipeline map_bundle_service map_odom_manager
   optimized_map_builder pose_graph_optimizer)
 ament_target_dependencies(mapping_backend_node
   a2w_fastlio_msgs geometry_msgs message_filters nav_msgs pcl_conversions rclcpp sensor_msgs tf2_ros)
@@ -91,7 +85,7 @@ install(DIRECTORY include/ DESTINATION include)
 install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
 install(TARGETS
   keyframe_manager frontend_message_adapter pose_graph_optimizer loop_pipeline map_odom_manager
-  optimized_map_builder global_tf_ownership
+  optimized_map_builder
   map_bundle_service
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
@@ -127,7 +121,8 @@ if(BUILD_TESTING)
   target_link_libraries(test_optimized_map_builder optimized_map_builder)
 
   ament_add_gtest(test_global_tf_ownership test/test_global_tf_ownership.cpp)
-  target_link_libraries(test_global_tf_ownership global_tf_ownership)
+  target_include_directories(test_global_tf_ownership PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  ament_target_dependencies(test_global_tf_ownership a2w_fastlio_common)
 
   ament_add_gtest(test_map_bundle_service test/test_map_bundle_service.cpp)
   target_link_libraries(test_map_bundle_service map_bundle_service)

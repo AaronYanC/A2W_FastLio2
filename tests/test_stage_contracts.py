@@ -178,6 +178,11 @@ class PackageDependencyTests(unittest.TestCase):
             {"a2w_fastlio_common", "a2w_fastlio_map", "a2w_fastlio_msgs"}
             <= graph["a2w_fastlio_mapping"]
         )
+        self.assertTrue(
+            {"a2w_fastlio_common", "a2w_fastlio_map", "a2w_fastlio_msgs"}
+            <= graph["a2w_fastlio_localization"]
+        )
+        self.assertNotIn("a2w_fastlio_mapping", graph["a2w_fastlio_localization"])
 
 
 class MapBundleContractTests(unittest.TestCase):
@@ -223,6 +228,53 @@ class MappingOutputContractTests(unittest.TestCase):
         self.assertEqual(source.count('executable="mapping_ingress_node"'), 1)
         self.assertNotIn("localization_backend", source)
         self.assertNotIn("localization.launch.py", source)
+
+
+class LocalizationContractTests(unittest.TestCase):
+    def test_localization_profile_has_one_owner_and_no_mapping_backend(self):
+        launch_path = (
+            REPOSITORY_ROOT / "src" / "a2w_fastlio2_bringup" / "launch" /
+            "localization.launch.py"
+        )
+        source = launch_path.read_text(encoding="utf-8")
+        self.assertEqual(source.count('executable="localization_node"'), 1)
+        self.assertNotIn('executable="mapping_backend_node"', source)
+        self.assertNotIn('executable="mapping_ingress_node"', source)
+
+    def test_localization_matching_profile_exposes_every_registration_gate(self):
+        config_path = (
+            REPOSITORY_ROOT / "src" / "a2w_fastlio_localization" / "config" /
+            "map_matching.yaml"
+        )
+        with config_path.open("r", encoding="utf-8") as stream:
+            parameters = yaml.safe_load(stream)["/**"]["ros__parameters"]
+        self.assertEqual(set(parameters), {"local_map", "quatro", "nano_gicp", "validation", "pipeline"})
+        self.assertEqual(
+            set(parameters["quatro"]),
+            {
+                "fpfh_normal_radius_m", "fpfh_radius_m", "noise_bound_m",
+                "rotation_gnc_factor", "rotation_cost_threshold",
+                "rotation_max_iterations", "estimate_scale", "optimized_matching",
+                "descriptor_distance_threshold", "maximum_correspondences", "minimum_points",
+            },
+        )
+        self.assertEqual(
+            set(parameters["nano_gicp"]),
+            {
+                "maximum_correspondence_distance_m", "thread_count",
+                "correspondence_randomness", "maximum_iterations",
+                "transformation_epsilon", "rotation_epsilon", "regularization_method",
+                "fitness_score_max_range_m", "minimum_points",
+            },
+        )
+        self.assertEqual(
+            set(parameters["validation"]),
+            {
+                "maximum_fitness", "minimum_overlap", "minimum_correspondences",
+                "maximum_translation_jump_m", "maximum_rotation_jump_rad",
+                "minimum_candidate_distance_separation",
+            },
+        )
 
 
 class AlgorithmBoundaryTests(unittest.TestCase):

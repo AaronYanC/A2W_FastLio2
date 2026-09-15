@@ -1,0 +1,39 @@
+/**:
+  ros__parameters:
+    local_map:
+      selection_radius_m: 30.0
+      max_neighbors: 20
+      minimum_neighbors: 1
+      voxel_leaf_m: 0.2
+      max_points: 200000
+    quatro:
+      fpfh_normal_radius_m: 0.5
+      fpfh_radius_m: 0.8
+      noise_bound_m: 0.25
+      rotation_gnc_factor: 1.4
+      rotation_cost_threshold: 0.0001
+      rotation_max_iterations: 100
+      estimate_scale: false
+      optimized_matching: true
+      descriptor_distance_threshold: 30.0
+      maximum_correspondences: 500
+      minimum_points: 20
+    nano_gicp:
+      maximum_correspondence_distance_m: 2.0
+      thread_count: 0
+      correspondence_randomness: 20
+      maximum_iterations: 64
+      transformation_epsilon: 0.001
+      rotation_epsilon: 0.001
+      regularization_method: 3
+      fitness_score_max_range_m: 1.0
+      minimum_points: 20
+    validation:
+      maximum_fitness: 0.25
+      minimum_overlap: 0.35
+      minimum_correspondences: 30
+      maximum_translation_jump_m: 5.0
+      maximum_rotation_jump_rad: 1.0
+      minimum_candidate_distance_separation: 0.05
+    pipeline:
+      evidence_distance_m: 0.5

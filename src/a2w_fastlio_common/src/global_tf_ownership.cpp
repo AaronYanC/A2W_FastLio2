@@ -1,9 +1,9 @@
-#include "a2w_fastlio_mapping/global_tf_ownership.hpp"
+#include "a2w_fastlio_common/global_tf_ownership.hpp"
 
 #include <stdexcept>
 #include <utility>
 
-namespace a2w_fastlio_mapping
+namespace a2w_fastlio_common
 {
 
 GlobalTfOwnerState::GlobalTfOwnerState(GlobalTfOwnerConfig config)
@@ -66,4 +66,4 @@ std::string GlobalTfOwnerState::faultReason(const std::int64_t) const
   return conflict_latched_ ? "foreign_global_tf_owner_active" : std::string{};
 }
 
-}  // namespace a2w_fastlio_mapping
+}  // namespace a2w_fastlio_common

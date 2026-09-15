@@ -1,0 +1,25 @@
+/**:
+  ros__parameters:
+    odom_topic: "/Odometry"
+    body_cloud_topic: "/cloud_registered_body"
+    pose_topic: "/localization/pose"
+    localized_odom_topic: "/localization/odom"
+    path_topic: "/localization/path"
+    registration_status_topic: "/localization/registration_status"
+    global_tf_owner_topic: "/a2w_fastlio/global_tf_owner"
+    map_frame: "map"
+    odom_frame: "camera_init"
+    tracking_frame: "body"
+    sync_queue_size: 20
+    input_qos_depth: 20
+    input_qos_reliability: "reliable"
+    input_qos_durability: "volatile"
+    output_qos_depth: 20
+    output_qos_reliability: "reliable"
+    output_qos_durability: "volatile"
+    path_qos_depth: 1
+    path_qos_reliability: "reliable"
+    path_qos_durability: "transient_local"
+    owner_qos_depth: 10
+    owner_qos_reliability: "reliable"
+    owner_qos_durability: "transient_local"

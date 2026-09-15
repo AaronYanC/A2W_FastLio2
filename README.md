@@ -237,6 +237,34 @@ Map Bundle 的 `creation_status` 为 `offline_verified`，
 `hardware_validation_status` 为 `pending`；这只说明格式与离线数据链通过验证，不表示地图
 来自 JT128 实机。
 
+## Stage 7：已有 Map Bundle 定位（离线实现）
+
+Localization 以只读方式校验并加载 Map Bundle V1，根据当前全局预测位姿选择附近关键帧
+临时构建 Local Map，再通过公共接口执行 `Quatro → Nano-GICP → MatchValidator`。低频匹配
+更新 `map → camera_init` 校正，高频 FAST-LIO 里程计持续输出 `map` 坐标系下的 pose、odom
+和 path。Mapping 与 Localization 使用不同启动模式，同一模式只允许一个全局 TF owner。
+
+```bash
+./scripts/run_a2w_localization.sh maps/factory_map
+```
+
+主要输出为 `/localization/pose`、`/localization/odom`、`/localization/path` 和
+`/localization/registration_status`。参数位于：
+
+```text
+src/a2w_fastlio_localization/config/localization.yaml
+src/a2w_fastlio_localization/config/map_matching.yaml
+src/a2w_fastlio_localization/config/localization_topics.yaml
+```
+
+当前验证仅包括合成 Map Bundle、已知变换配准、低频校正/高频传播、Topic frame/stamp/QoS、
+TF owner 和 Map Bundle 内容不变性。真实 JT128 Topic、帧、时间戳、匹配稳定性与性能仍待
+集中实机验收。
+
+```text
+Offline implementation and verification complete; JT128 hardware validation pending.
+```
+
 ## 建图并保存 PCD
 
 ```bash
@@ -303,7 +331,10 @@ A2W_DDS_PEER=192.168.123.164 \
 ├── src/
 │   ├── FAST_LIO_Hesai/           # 禾赛官方固定版本 submodule
 │   ├── a2w_fastlio_common/        # ROS 无关的共享后端类型和算法接口
-│   ├── a2w_fastlio_mapping/       # 关键帧接入与后续 Mapping 后端
+│   ├── a2w_fastlio_map/           # Map Bundle 持久化与只读加载
+│   ├── a2w_fastlio_mapping/       # 关键帧、回环、PGO 与优化地图
+│   ├── a2w_fastlio_localization/  # 已有 Map Bundle 实时定位
+│   ├── a2w_fastlio_msgs/          # Mapping/Localization ROS2 接口
 │   └── a2w_fastlio2_bringup/     # A2-W JT128 配置和 launch
 └── tests/                        # 可迁移性与配置行为测试
 ```

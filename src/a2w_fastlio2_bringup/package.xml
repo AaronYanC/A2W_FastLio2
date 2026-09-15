@@ -11,6 +11,7 @@
   <exec_depend>ament_index_python</exec_depend>
   <exec_depend>a2w_fastlio_mapping</exec_depend>
   <exec_depend>a2w_fastlio_map</exec_depend>
+  <exec_depend>a2w_fastlio_localization</exec_depend>
   <exec_depend>fast_lio</exec_depend>
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>

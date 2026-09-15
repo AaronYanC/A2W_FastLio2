@@ -31,16 +31,16 @@
 - Consumes: read-only `MapSnapshot` and only common algorithm interfaces.
 - Produces: `SelectionResult select(global_pose)` and `MapMatchResult match(frame,selection)`.
 
-- [ ] **Step 1: Write RED tests** for radius/K-nearest selection, deterministic tie order, boundary selection, no-neighbor failure, coarse-to-fine interface calls, validator rejection, and candidate metrics.
-- [ ] **Step 2: Run RED**; expect missing package.
-- [ ] **Step 3: Implement selection against immutable optimized poses** and matching through `LocalMapBuilder`, `CoarseRegistration`, `FineRegistration`, and `MatchValidator` interfaces.
+- [x] **Step 1: Write RED tests** for radius/K-nearest selection, deterministic tie order, boundary selection, no-neighbor failure, coarse-to-fine interface calls, validator rejection, and candidate metrics.
+- [x] **Step 2: Run RED**; expect missing package.
+- [x] **Step 3: Implement selection against immutable optimized poses** and matching through `LocalMapBuilder`, `CoarseRegistration`, `FineRegistration`, and `MatchValidator` interfaces.
 
 ```cpp
 SelectionResult select(const Pose3d & map_body) const;
 MapMatchResult match(
   const FrontendFrame & frame, const SelectionResult & selection) const;
 ```
-- [ ] **Step 4: Run GREEN** with fake algorithms plus one real synthetic registration integration case.
+- [x] **Step 4: Run GREEN** with fake algorithms plus one real synthetic registration integration case.
 
 ### Task 2: LocalizationManager correction semantics
 
@@ -53,10 +53,10 @@ MapMatchResult match(
 - Consumes: `FrontendFrame` and optional validated `MapMatchResult`.
 - Produces: `LocalizationOutput` with global body pose, correction stamp/age, and match evidence.
 
-- [ ] **Step 1: Write RED tests** for initial correction, low-rate matching schedule, high-rate `T_map_body = T_map_camera_init * T_camera_init_body`, failed-match correction age, monotonic timestamps, correction jump rejection, and thread-safe immutable snapshots.
-- [ ] **Step 2: Run RED**; expect missing manager.
-- [ ] **Step 3: Implement manager state** with injected clock/matcher for deterministic tests. Only validated matches update correction stamp and transform.
-- [ ] **Step 4: Run GREEN**, including a sequence where outputs remain continuous while correction age increases after failure.
+- [x] **Step 1: Write RED tests** for initial correction, low-rate matching schedule, high-rate `T_map_body = T_map_camera_init * T_camera_init_body`, failed-match correction age, monotonic timestamps, correction jump rejection, and thread-safe immutable snapshots.
+- [x] **Step 2: Run RED**; expect missing manager.
+- [x] **Step 3: Implement manager state** with injected clock/matcher for deterministic tests. Only validated matches update correction stamp and transform.
+- [x] **Step 4: Run GREEN**, including a sequence where outputs remain continuous while correction age increases after failure.
 
 ### Task 3: ROS 2 Localization node and mode launch
 
@@ -69,18 +69,18 @@ MapMatchResult match(
 **Interfaces:**
 - Produces: configured Localization Topics and the sole `map -> camera_init` owner in this mode.
 
-- [ ] **Step 1: Write RED launch tests** loading a generated Bundle, publishing exact-stamp odom/cloud pairs, and checking pose/odom/path frames, stamps, configured QoS, global TF, and absence of Mapping backend/owner.
-- [ ] **Step 2: Add RED read-only assertions** comparing the bundle manifest before and after the run.
-- [ ] **Step 3: Implement node and launch** using Stage 1 adaptation semantics and Stage 5 ownership. Config file paths resolve through package share/project arguments, never developer absolute paths.
-- [ ] **Step 4: Run GREEN** under CycloneDDS without a robot.
+- [x] **Step 1: Write RED launch tests** loading a generated Bundle, publishing exact-stamp odom/cloud pairs, and checking pose/odom/path frames, stamps, configured QoS, global TF, and absence of Mapping backend/owner.
+- [x] **Step 2: Add RED read-only assertions** comparing the bundle manifest before and after the run.
+- [x] **Step 3: Implement node and launch** using Stage 1 adaptation semantics and Stage 5 ownership. Config file paths resolve through package share/project arguments, never developer absolute paths.
+- [x] **Step 4: Run GREEN** under CycloneDDS without a robot.
 
 ### Task 4: Stage 7 checkpoint
 
 **Interfaces:**
 - Produces: installed `localization.launch.py` and documented offline invocation.
 
-- [ ] **Step 1: Add documentation and profile tests** for `mapping.launch.py` versus `localization.launch.py` mutual exclusion.
-- [ ] **Step 2: Run full workspace build/tests, Map Bundle verifier, launch `--show-args`, path hygiene, and protected diffs.**
+- [x] **Step 1: Add documentation and profile tests** for `mapping.launch.py` versus `localization.launch.py` mutual exclusion.
+- [x] **Step 2: Run full workspace build/tests, Map Bundle verifier, launch `--show-args`, path hygiene, and protected diffs.**
 - [ ] **Step 3: Commit and push**:
 
 ```bash

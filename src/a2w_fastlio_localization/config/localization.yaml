@@ -1,0 +1,10 @@
+/**:
+  ros__parameters:
+    # Offline-safe defaults. Final thresholds require JT128 hardware validation.
+    match_interval_ms: 1000
+    maximum_correction_translation_jump_m: 5.0
+    maximum_correction_rotation_jump_rad: 1.0
+    max_path_poses: 10000
+    owner_id: "localization_backend"
+    owner_conflict_window_ms: 1000
+    owner_heartbeat_ms: 250

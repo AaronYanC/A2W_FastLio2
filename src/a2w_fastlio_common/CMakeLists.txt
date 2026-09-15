@@ -103,6 +103,12 @@ target_include_directories(a2w_algorithm_suite PUBLIC
 )
 target_link_libraries(a2w_algorithm_suite PUBLIC a2w_scan_context a2w_registration)
 
+add_library(a2w_runtime_contracts SHARED src/global_tf_ownership.cpp)
+target_include_directories(a2w_runtime_contracts PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
 add_library(${PROJECT_NAME} INTERFACE)
 target_include_directories(${PROJECT_NAME} INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -110,11 +116,13 @@ target_include_directories(${PROJECT_NAME} INTERFACE
   ${PCL_INCLUDE_DIRS}
 )
 target_link_libraries(${PROJECT_NAME} INTERFACE
-  Eigen3::Eigen ${PCL_LIBRARIES} a2w_scan_context a2w_registration a2w_algorithm_suite)
+  Eigen3::Eigen ${PCL_LIBRARIES} a2w_scan_context a2w_registration a2w_algorithm_suite
+  a2w_runtime_contracts)
 
 install(DIRECTORY include/ DESTINATION include)
 install(DIRECTORY ${SCANCONTEXT_ROOT}/include/ DESTINATION include)
 install(TARGETS ${PROJECT_NAME} a2w_scan_context a2w_registration a2w_algorithm_suite
+  a2w_runtime_contracts
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib

@@ -58,9 +58,26 @@ LocalMapResult LocalMapBuilder::build(
 
   const auto first = std::max(provider_bounds->first, subtractClamped(center_id, before));
   const auto last = std::min(provider_bounds->second, addClamped(center_id, after));
+  std::vector<std::uint64_t> ids;
+  for (std::uint64_t id = first;; ++id) {
+    ids.push_back(id);
+    if (id == last) {
+      break;
+    }
+  }
+  return build(ids, provider);
+}
+
+LocalMapResult LocalMapBuilder::build(
+  const std::vector<std::uint64_t> & keyframe_ids,
+  const KeyFrameProvider & provider) const
+{
+  if (keyframe_ids.empty()) {
+    throw std::runtime_error("cannot build a local map from an empty ID selection");
+  }
   LocalMapResult result;
 
-  for (std::uint64_t id = first;; ++id) {
+  for (const auto id : keyframe_ids) {
     const auto frame = provider.get(id);
     if (!frame) {
       throw std::runtime_error("local map neighborhood contains a missing keyframe");
@@ -86,9 +103,6 @@ LocalMapResult LocalMapBuilder::build(
       result.cloud->push_back(output);
     }
     result.included_ids.push_back(id);
-    if (id == last) {
-      break;
-    }
   }
 
   if (config_.voxel_leaf_m > 0.0) {

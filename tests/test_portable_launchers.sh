@@ -6,6 +6,7 @@ pc_launcher="$repository_root/scripts/run_fastlio_jt128_pc.sh"
 mapping_launcher="$repository_root/scripts/run_fastlio_jt128_mapping.sh"
 stage1_launcher="$repository_root/scripts/run_fastlio_jt128_stage1.sh"
 backend_mapping_launcher="$repository_root/scripts/run_a2w_mapping.sh"
+localization_launcher="$repository_root/scripts/run_a2w_localization.sh"
 
 fail() {
     printf 'FAIL: %s\n' "$1" >&2
@@ -22,6 +23,7 @@ pc_capture="$temp_dir/pc_capture"
 mapping_capture="$temp_dir/mapping_capture"
 stage1_capture="$temp_dir/stage1_capture"
 backend_mapping_capture="$temp_dir/backend_mapping_capture"
+localization_capture="$temp_dir/localization_capture"
 runtime_dir="$temp_dir/runtime"
 map_file="$repository_root/maps/jt128_map.pcd"
 
@@ -165,6 +167,21 @@ grep -Fx "bundle_root:=$repository_root/maps" "$backend_mapping_capture" >/dev/n
     fail "backend Mapping launcher did not resolve the repository Map Bundle root"
 grep -Fx 'rviz:=false' "$backend_mapping_capture" >/dev/null || \
     fail "backend Mapping launcher did not forward launch arguments"
+
+test_bundle="$temp_dir/test bundle"
+mkdir -p "$test_bundle"
+: >"$test_bundle/manifest.sha256"
+(
+    cd /tmp
+    A2W_TEST_CAPTURE="$localization_capture" \
+    A2W_PC_LAUNCHER="$temp_dir/fake_pc_launcher" \
+        "$localization_launcher" "$test_bundle" rviz:=false
+)
+
+grep -Fx "map_bundle_path:=$test_bundle" "$localization_capture" >/dev/null || \
+    fail "Localization launcher did not resolve its Map Bundle path"
+grep -Fx 'rviz:=false' "$localization_capture" >/dev/null || \
+    fail "Localization launcher did not forward launch arguments"
 
 tool_capture="$temp_dir/tool_capture"
 fake_git="$temp_dir/git"

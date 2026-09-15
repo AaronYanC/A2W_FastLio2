@@ -40,7 +40,7 @@ install(TARGETS ${PROJECT_NAME} EXPORT export_${PROJECT_NAME}
 )
 install(TARGETS map_bundle_inspect DESTINATION lib/${PROJECT_NAME})
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
-ament_export_dependencies(a2w_fastlio_common)
+ament_export_dependencies(a2w_fastlio_common OpenSSL PCL yaml-cpp)
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)

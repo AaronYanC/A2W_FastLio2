@@ -39,6 +39,9 @@ public:
   LocalMapResult build(
     std::uint64_t center_id, std::size_t before, std::size_t after,
     const KeyFrameProvider & provider) const;
+  LocalMapResult build(
+    const std::vector<std::uint64_t> & keyframe_ids,
+    const KeyFrameProvider & provider) const;
 
 private:
   LocalMapConfig config_;
