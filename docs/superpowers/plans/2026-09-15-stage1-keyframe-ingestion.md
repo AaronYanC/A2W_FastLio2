@@ -296,14 +296,14 @@ git commit -m "feat(mapping): adapt synchronized FAST-LIO messages"
 - Parameters: `translation_threshold_m=1.0`, `rotation_threshold_deg=10.0`, `max_interval_s=2.0`, `odom_frame=camera_init`, `tracking_frame=body`, input/output topic names, queue size.
 - Does not publish TF and does not create a map.
 
-- [ ] **Step 1: Write a failing launch/integration test**
+- [x] **Step 1: Write a failing launch/integration test**
 
 Launch only `mapping_ingress_node`. Publish a matched odom/body-cloud pair using reliable QoS and
 literal stamp/frame values. Subscribe to both keyframe outputs and assert one message arrives with
 unchanged stamp and frames. Publish a second below-threshold pair and assert no second keyframe is
 received during a bounded timeout.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 Run:
 
@@ -314,7 +314,7 @@ colcon build --symlink-install --packages-up-to a2w_fastlio_mapping
 
 Expected: build or launch test fails because `mapping_ingress_node` is not installed.
 
-- [ ] **Step 3: Implement the minimal node**
+- [x] **Step 3: Implement the minimal node**
 
 Use two `message_filters::Subscriber` objects and exact-time synchronization because the current
 frontend assigns the same `lidar_end_time` to both outputs. Keep subscriber QoS compatible with the
@@ -322,18 +322,18 @@ frontend's reliable depth-20 publishers. The synchronized callback calls `makeFr
 `KeyframeManager::consider`; publish only accepted keyframes. Log rejection counters periodically,
 not once per scan.
 
-- [ ] **Step 4: Verify GREEN**
+- [x] **Step 4: Verify GREEN**
 
 Run the integration test and all package tests. Confirm the node exits cleanly and no TF is
 published by this package.
 
-- [ ] **Step 5: Add failing parameter-validation tests**
+- [x] **Step 5: Add failing parameter-validation tests**
 
 Launch with zero/negative thresholds and queue size zero. Assert startup fails with a clear
 parameter error rather than silently accepting unusable values. Then add the smallest validation
 needed for the tests to pass.
 
-- [ ] **Step 6: Commit the ROS2 ingress**
+- [x] **Step 6: Commit the ROS2 ingress**
 
 ```bash
 git add src/a2w_fastlio_mapping

@@ -1,0 +1,12 @@
+/**:
+  ros__parameters:
+    odom_topic: "/Odometry"
+    body_cloud_topic: "/cloud_registered_body"
+    keyframe_odom_topic: "/mapping/keyframe_odom"
+    keyframe_cloud_topic: "/mapping/keyframe_cloud"
+    odom_frame: "camera_init"
+    tracking_frame: "body"
+    sync_queue_size: 20
+    translation_threshold_m: 1.0
+    rotation_threshold_deg: 10.0
+    max_interval_s: 2.0
