@@ -4,6 +4,7 @@ set -euo pipefail
 repository_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
 pc_launcher="$repository_root/scripts/run_fastlio_jt128_pc.sh"
 mapping_launcher="$repository_root/scripts/run_fastlio_jt128_mapping.sh"
+stage1_launcher="$repository_root/scripts/run_fastlio_jt128_stage1.sh"
 
 fail() {
     printf 'FAIL: %s\n' "$1" >&2
@@ -18,6 +19,7 @@ install_setup="$temp_dir/install_setup.bash"
 fake_ros2="$temp_dir/ros2"
 pc_capture="$temp_dir/pc_capture"
 mapping_capture="$temp_dir/mapping_capture"
+stage1_capture="$temp_dir/stage1_capture"
 runtime_dir="$temp_dir/runtime"
 map_file="$repository_root/maps/jt128_map.pcd"
 
@@ -132,6 +134,23 @@ grep -Fx "map_file:=$map_file" "$mapping_capture" >/dev/null || \
     fail "mapping launcher did not resolve the map below repository root"
 grep -Fx 'rviz:=false' "$mapping_capture" >/dev/null || \
     fail "mapping launcher did not forward launch arguments"
+
+(
+    cd /tmp
+    A2W_TEST_CAPTURE="$stage1_capture" \
+    A2W_ROS_SETUP="$ros_setup" \
+    A2W_INSTALL_SETUP="$install_setup" \
+    A2W_PC_IP="192.168.123.77" \
+    A2W_NETWORK_INTERFACE="test0" \
+    A2W_DDS_PEER="192.168.123.164" \
+    A2W_RUNTIME_DIR="$runtime_dir" \
+    ROS2_BIN="$fake_ros2" \
+        "$stage1_launcher" rviz:=false
+)
+
+grep -Fx \
+    'ARGS=launch a2w_fastlio2_bringup mapping_stage1.launch.py save_frontend_pcd:=false rviz:=false ' \
+    "$stage1_capture" >/dev/null || fail "Stage 1 launcher command is not portable bringup"
 
 tool_capture="$temp_dir/tool_capture"
 fake_git="$temp_dir/git"

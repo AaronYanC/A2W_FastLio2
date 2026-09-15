@@ -54,6 +54,9 @@ src/a2w_fastlio_mapping/
 
 src/a2w_fastlio2_bringup/launch/
 └── mapping_stage1.launch.py
+
+scripts/
+└── run_fastlio_jt128_stage1.sh
 ```
 
 `a2w_fastlio_common` exports only C++ data types and Eigen/PCL dependencies.
@@ -346,6 +349,8 @@ git commit -m "feat(mapping): add ROS2 FAST-LIO keyframe ingress"
 
 **Files:**
 - Create: `src/a2w_fastlio2_bringup/launch/mapping_stage1.launch.py`
+- Create: `scripts/run_fastlio_jt128_stage1.sh`
+- Modify: `scripts/run_fastlio_jt128_pc.sh`
 - Modify: `src/a2w_fastlio2_bringup/CMakeLists.txt`
 - Modify: `src/a2w_fastlio2_bringup/package.xml`
 - Modify: `tests/test_portable_launchers.sh`
@@ -357,18 +362,18 @@ git commit -m "feat(mapping): add ROS2 FAST-LIO keyframe ingress"
 - Exposes `rviz`, `save_frontend_pcd`, `frontend_map_file`, and mapping-config arguments.
 - Does not launch Localization, publish `map→odom`, or save a Map Bundle.
 
-- [ ] **Step 1: Extend the launcher behavior test first**
+- [x] **Step 1: Extend the launcher behavior test first**
 
 Use the existing fake `ros2` harness to invoke the new launch from a directory outside the repo.
 Assert arguments use package/config resolution and contain no machine-specific path. Verify the
 test fails because the launch file does not yet exist.
 
-- [ ] **Step 2: Add the minimal launch and package dependencies**
+- [x] **Step 2: Add the minimal launch and package dependencies**
 
 Resolve package shares with `ament_index_python`. Keep frontend PCD saving disabled by default.
 Do not duplicate JT128 parameters or start another FAST_LIO executable.
 
-- [ ] **Step 3: Verify launcher tests and inspect launch description**
+- [x] **Step 3: Verify launcher tests and inspect launch description**
 
 ```bash
 ./tests/test_portable_launchers.sh
@@ -378,7 +383,7 @@ ros2 launch a2w_fastlio2_bringup mapping_stage1.launch.py --show-args
 
 Expected: portable launcher test passes and all arguments resolve without connecting to a robot.
 
-- [ ] **Step 4: Document only Stage 1 commands and limitations**
+- [x] **Step 4: Document only Stage 1 commands and limitations**
 
 Add a README section showing the launch command and inspection topics. Explicitly state:
 
@@ -387,10 +392,10 @@ Stage 1 only creates keyframes.
 No loop closure, GTSAM, optimized map, localization, relocalization, or map→odom exists yet.
 ```
 
-- [ ] **Step 5: Commit bringup and docs**
+- [x] **Step 5: Commit bringup and docs**
 
 ```bash
-git add src/a2w_fastlio2_bringup tests/test_portable_launchers.sh README.md
+git add src/a2w_fastlio2_bringup scripts tests/test_portable_launchers.sh README.md
 git commit -m "feat(bringup): launch Stage 1 keyframe ingestion"
 ```
 

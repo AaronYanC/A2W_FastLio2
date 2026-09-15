@@ -65,6 +65,40 @@ subscriber、类型及 QoS，不会启动、停止或修改机器人端服务。
 ./scripts/run_fastlio_jt128_pc.sh rviz:=false
 ```
 
+## Stage 1：关键帧接入
+
+Stage 1 在现有 Hesai FAST-LIO2 前端旁路启动 ROS2 Mapping ingress：
+
+```bash
+./scripts/run_fastlio_jt128_stage1.sh
+```
+
+不启动 RViz：
+
+```bash
+./scripts/run_fastlio_jt128_stage1.sh rviz:=false
+```
+
+该节点 ExactTime 同步现有 `/Odometry` 与 `/cloud_registered_body`，根据平移、旋转
+或最大时间间隔生成关键帧，并发布：
+
+```text
+/mapping/keyframe_odom
+/mapping/keyframe_cloud
+```
+
+默认阈值位于 `a2w_fastlio_mapping/config/mapping.yaml`：1.0 米、10 度、2.0 秒。
+Stage 1 只生成关键帧，尚不包含 Scan Context、回环、Quatro、Nano-GICP、GTSAM、
+优化地图、Localization、Relocalization 或 `map→odom`。该节点自身不发布 TF。
+
+如需同时保存前端的未优化累计 PCD，可显式启用：
+
+```bash
+./scripts/run_fastlio_jt128_stage1.sh \
+  save_frontend_pcd:=true \
+  frontend_map_file:=/data/maps/frontend_map.pcd
+```
+
 ## 建图并保存 PCD
 
 ```bash
@@ -130,6 +164,8 @@ A2W_DDS_PEER=192.168.123.164 \
 ├── scripts/                      # 初始化、编译、检查和运行入口
 ├── src/
 │   ├── FAST_LIO_Hesai/           # 禾赛官方固定版本 submodule
+│   ├── a2w_fastlio_common/        # ROS 无关的共享后端数据类型
+│   ├── a2w_fastlio_mapping/       # Stage 1 关键帧接入
 │   └── a2w_fastlio2_bringup/     # A2-W JT128 配置和 launch
 └── tests/                        # 可迁移性与配置行为测试
 ```
