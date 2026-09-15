@@ -1,0 +1,33 @@
+/**:
+  ros__parameters:
+    keyframe_odom_topic: "/mapping/keyframe_odom"
+    keyframe_cloud_topic: "/mapping/keyframe_cloud"
+    optimized_odom_topic: "/mapping/optimized_odom"
+    optimized_path_topic: "/mapping/optimized_path"
+    optimized_map_preview_topic: "/mapping/optimized_map_preview"
+    registration_status_topic: "/mapping/registration_status"
+    global_tf_owner_topic: "/a2w_fastlio/global_tf_owner"
+    map_frame: "map"
+    odom_frame: "camera_init"
+    tracking_frame: "body"
+    sync_queue_size: 20
+    input_qos_depth: 20
+    input_qos_reliability: "reliable"
+    input_qos_durability: "volatile"
+    optimized_qos_depth: 20
+    optimized_qos_reliability: "reliable"
+    optimized_qos_durability: "volatile"
+    preview_qos_depth: 1
+    preview_qos_reliability: "reliable"
+    preview_qos_durability: "transient_local"
+    owner_qos_depth: 10
+    owner_qos_reliability: "reliable"
+    owner_qos_durability: "transient_local"
+    full_map_voxel_leaf_m: 0.0
+    preview_voxel_leaf_m: 0.5
+    preview_max_points: 100000
+    owner_id: "mapping_backend"
+    mode: "mapping"
+    owner_conflict_window_ms: 1000
+    owner_heartbeat_ms: 250
+    worker_period_ms: 10

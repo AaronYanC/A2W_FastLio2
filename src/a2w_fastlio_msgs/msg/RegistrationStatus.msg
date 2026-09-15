@@ -1,0 +1,10 @@
+builtin_interfaces/Time stamp
+uint64 keyframe_id
+uint64 candidate_id
+bool accepted
+string stage
+string reason
+float64 fitness
+float64 overlap
+uint64 correspondence_count
+float64 elapsed_ms

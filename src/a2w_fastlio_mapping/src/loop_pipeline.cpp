@@ -1,6 +1,7 @@
 #include "a2w_fastlio_mapping/loop_pipeline.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
 #include <stdexcept>
 #include <utility>
@@ -78,7 +79,8 @@ LoopPipeline::LoopPipeline(
 {
   if (!place_recognition_ || !descriptor_index_ || !registration_ || !graph_ ||
     config_.top_k == 0U || config_.minimum_keyframes_between_accepted_loops == 0U ||
-    config_.queue_capacity == 0U)
+    config_.queue_capacity == 0U || !std::isfinite(config_.maximum_descriptor_distance) ||
+    config_.maximum_descriptor_distance <= 0.0)
   {
     throw std::invalid_argument{"invalid loop-pipeline dependencies or configuration"};
   }
@@ -121,6 +123,12 @@ std::vector<LoopPipelineEvent> LoopPipeline::process(
     filter.max_inclusive_id = current.id - 1U;
     filter.exclude_recent = config_.exclude_recent;
     candidates = descriptor_index_->queryTopK(descriptor, config_.top_k, filter);
+    candidates.erase(
+      std::remove_if(
+        candidates.begin(), candidates.end(), [this](const auto & candidate) {
+          return candidate.distance > config_.maximum_descriptor_distance;
+        }),
+      candidates.end());
   }
 
   if (cooldown) {

@@ -96,6 +96,13 @@ target_include_directories(a2w_scan_context PUBLIC
 )
 target_link_libraries(a2w_scan_context PUBLIC Eigen3::Eigen ${PCL_LIBRARIES})
 
+add_library(a2w_algorithm_suite SHARED src/default_algorithm_suite.cpp)
+target_include_directories(a2w_algorithm_suite PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(a2w_algorithm_suite PUBLIC a2w_scan_context a2w_registration)
+
 add_library(${PROJECT_NAME} INTERFACE)
 target_include_directories(${PROJECT_NAME} INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -103,11 +110,12 @@ target_include_directories(${PROJECT_NAME} INTERFACE
   ${PCL_INCLUDE_DIRS}
 )
 target_link_libraries(${PROJECT_NAME} INTERFACE
-  Eigen3::Eigen ${PCL_LIBRARIES} a2w_scan_context a2w_registration)
+  Eigen3::Eigen ${PCL_LIBRARIES} a2w_scan_context a2w_registration a2w_algorithm_suite)
 
 install(DIRECTORY include/ DESTINATION include)
 install(DIRECTORY ${SCANCONTEXT_ROOT}/include/ DESTINATION include)
-install(TARGETS ${PROJECT_NAME} a2w_scan_context a2w_registration EXPORT export_${PROJECT_NAME}
+install(TARGETS ${PROJECT_NAME} a2w_scan_context a2w_registration a2w_algorithm_suite
+  EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
@@ -143,6 +151,9 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_registration_pipeline test/test_registration_pipeline.cpp)
   target_link_libraries(test_registration_pipeline ${PROJECT_NAME})
+
+  ament_add_gtest(test_default_algorithm_suite test/test_default_algorithm_suite.cpp)
+  target_link_libraries(test_default_algorithm_suite ${PROJECT_NAME})
 endif()
 
 ament_package()

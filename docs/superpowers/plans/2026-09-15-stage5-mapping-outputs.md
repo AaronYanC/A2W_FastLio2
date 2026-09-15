@@ -30,9 +30,9 @@
 - Consumes: synchronized FAST-LIO and optimized body poses.
 - Produces: `MapOdomCorrection` with `T_map_camera_init`, source ID/stamp, and age.
 
-- [ ] **Step 1: Write RED tests** for `T_map_camera_init = T_map_body_optimized * inverse(T_camera_init_body_fastlio)`, identity, rotation/translation composition, finite validation, and timestamp monotonicity.
-- [ ] **Step 2: Run RED**; expect missing manager.
-- [ ] **Step 3: Implement immutable correction snapshots** with the exact update API:
+- [x] **Step 1: Write RED tests** for `T_map_camera_init = T_map_body_optimized * inverse(T_camera_init_body_fastlio)`, identity, rotation/translation composition, finite validation, and timestamp monotonicity.
+- [x] **Step 2: Run RED**; expect missing manager.
+- [x] **Step 3: Implement immutable correction snapshots** with the exact update API:
 
 ```cpp
 MapOdomCorrection update(
@@ -40,7 +40,7 @@ MapOdomCorrection update(
   const Pose3d & map_body, const Pose3d & camera_init_body);
 std::optional<MapOdomCorrection> latest() const;
 ```
-- [ ] **Step 4: Run GREEN** with transform tolerances below `1e-9` for analytic cases.
+- [x] **Step 4: Run GREEN** with transform tolerances below `1e-9` for analytic cases.
 
 ### Task 2: Optimized map builder and bounded preview
 
@@ -53,10 +53,10 @@ std::optional<MapOdomCorrection> latest() const;
 - Consumes: `KeyFrameProvider` plus `OptimizedPoseSnapshot`.
 - Produces: `buildFull()` for Map Bundle input and `buildPreview()` for bounded DDS output.
 
-- [ ] **Step 1: Write RED tests** for optimized-pose application, voxel filtering, deterministic max-point cap, full-map output separate from preview, and no mutation of keyframe clouds.
-- [ ] **Step 2: Run RED**; expect missing builder.
-- [ ] **Step 3: Implement `buildFull()` and `buildPreview()`**; preview always applies configured voxel and point limits, while full output is returned in memory for Map Bundle writing and never assigned transient-local DDS QoS.
-- [ ] **Step 4: Run GREEN** including a large synthetic sequence whose preview stays bounded.
+- [x] **Step 1: Write RED tests** for optimized-pose application, voxel filtering, deterministic max-point cap, full-map output separate from preview, and no mutation of keyframe clouds.
+- [x] **Step 2: Run RED**; expect missing builder.
+- [x] **Step 3: Implement `buildFull()` and `buildPreview()`**; preview always applies configured voxel and point limits, while full output is returned in memory for Map Bundle writing and never assigned transient-local DDS QoS.
+- [x] **Step 4: Run GREEN** including a large synthetic sequence whose preview stays bounded.
 
 ### Task 3: ROS messages and global TF ownership
 
@@ -71,9 +71,9 @@ std::optional<MapOdomCorrection> latest() const;
   `/mapping/optimized_map_preview`, `/mapping/registration_status`, and `map -> camera_init`.
 - Uses: `/a2w_fastlio/global_tf_owner` as the parameterized ownership announcement default.
 
-- [ ] **Step 1: Write RED launch tests** that feed synthetic keyframes and assert optimized message frames/stamps, `/mapping/optimized_map_preview` QoS and point bound, one `map -> camera_init` TF, and no `/mapping/optimized_map` Topic.
-- [ ] **Step 2: Add a RED conflict test** launching two owner candidates; assert neither conflict state continues publishing global TF after discovery.
-- [ ] **Step 3: Implement ownership announcement** on a configurable reliable/transient-local Topic with owner ID, mode, heartbeat, and conflict window. Foreign active ownership disables TF and publishes a fault.
+- [x] **Step 1: Write RED launch tests** that feed synthetic keyframes and assert optimized message frames/stamps, `/mapping/optimized_map_preview` QoS and point bound, one `map -> camera_init` TF, and no `/mapping/optimized_map` Topic.
+- [x] **Step 2: Add a RED conflict test** launching two owner candidates; assert neither conflict state continues publishing global TF after discovery.
+- [x] **Step 3: Implement ownership announcement** on a configurable reliable/transient-local Topic with owner ID, mode, heartbeat, and conflict window. Foreign active ownership disables TF and publishes a fault.
 
 ```text
 GlobalTfOwner.msg:
@@ -84,8 +84,8 @@ string parent_frame
 string child_frame
 bool active
 ```
-- [ ] **Step 4: Implement ROS output adapters** with parameter-built QoS. Keep graph/registration algorithms outside the node class.
-- [ ] **Step 5: Run GREEN** under CycloneDDS.
+- [x] **Step 4: Implement ROS output adapters** with parameter-built QoS. Keep graph/registration algorithms outside the node class.
+- [x] **Step 5: Run GREEN** under CycloneDDS.
 
 ### Task 4: Mapping launch mode and checkpoint
 
@@ -97,9 +97,9 @@ bool active
 **Interfaces:**
 - Produces: `mapping.launch.py` with exactly one global TF owner and parameterized config paths.
 
-- [ ] **Step 1: Write RED static launch tests** asserting exactly one global owner and no Localization backend in Mapping mode.
-- [ ] **Step 2: Add the launch/config implementation** and mark all runtime facts as hardware pending.
-- [ ] **Step 3: Run full workspace build/tests, `--show-args`, path hygiene, and protected diffs.**
+- [x] **Step 1: Write RED static launch tests** asserting exactly one global owner and no Localization backend in Mapping mode.
+- [x] **Step 2: Add the launch/config implementation** and mark all runtime facts as hardware pending.
+- [x] **Step 3: Run full workspace build/tests, `--show-args`, path hygiene, and protected diffs.**
 - [ ] **Step 4: Commit and push**:
 
 ```bash

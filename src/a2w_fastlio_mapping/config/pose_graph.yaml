@@ -13,9 +13,5 @@
       relinearization_threshold: 0.1
       relinearization_skip: 1
     loop_pipeline:
-      top_k: 5
-      exclude_recent: 30
-      local_map_before: 5
-      local_map_after: 5
       minimum_keyframes_between_accepted_loops: 10
       queue_capacity: 32

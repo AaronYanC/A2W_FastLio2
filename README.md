@@ -163,7 +163,46 @@ kernel；未验证、越界、同 ID 或非有限约束在改变图状态前被�
 
 `LoopPipeline` 负责 Top-K 候选、临时 Local Map、共享粗到细配准、每窗口最多一个闭环和
 有界输入队列。默认参数位于 `a2w_fastlio_mapping/config/pose_graph.yaml`，均为离线初值。
-Stage 5 前不发布 `map→camera_init`、optimized path 或地图预览。
+Stage 4 本身不发布 `map→camera_init`、optimized path 或地图预览；这些输出由 Stage 5
+ROS 适配层负责。
+
+```text
+Offline implementation and verification complete; JT128 hardware validation pending.
+```
+
+## Stage 5：优化输出与全局 TF 所有权（离线实现）
+
+完整 Mapping 模式由以下入口组合现有 Hesai 前端、关键帧接入和 Mapping 后端：
+
+```bash
+ros2 launch a2w_fastlio2_bringup mapping.launch.py
+```
+
+后端发布 `/mapping/optimized_odom`、`/mapping/optimized_path`、
+`/mapping/optimized_map_preview` 和 `/mapping/registration_status`。坐标链保持
+`map → camera_init → body`；`map → camera_init` 发布前先通过
+`/a2w_fastlio/global_tf_owner` 完成可配置观察窗口。发现同一坐标变换的其他 active owner
+后冲突状态会锁存，本进程停止发布全局 TF 并给出 fault status。
+
+关键帧回调只写入有界队列；独立 worker 通过 `DefaultAlgorithmSuite` 的抽象服务运行
+`PlaceRecognition → CoarseRegistration → FineRegistration → RegistrationResult`，再将已验证
+闭环送入 GTSAM。具体 Scan Context、Quatro、Nano-GICP 类型仍封装在
+`a2w_fastlio_common`，Mapping 上层没有直接实现依赖。
+
+`/mapping/optimized_map_preview` 是有体素降采样和最大点数限制的 RViz/调试产物，默认
+QoS 为 reliable、transient-local、keep-last 1。工程不会创建
+`/mapping/optimized_map` 高密度长驻 Topic。完整优化点云只保留在后端内存，Stage 6 将通过
+`a2w_fastlio_map` 写入 Map Bundle 的 `global_map.pcd`。
+
+参数位于：
+
+```text
+src/a2w_fastlio_mapping/config/mapping_topics.yaml
+src/a2w_fastlio_mapping/config/pose_graph.yaml
+```
+
+当前只通过 synthetic keyframe、变换一致性、地图点数边界、QoS 和双 owner 冲突测试；
+Topic 频率、真实 frame/timestamp、实时性能及整机 TF 树尚未实机验证。
 
 ```text
 Offline implementation and verification complete; JT128 hardware validation pending.

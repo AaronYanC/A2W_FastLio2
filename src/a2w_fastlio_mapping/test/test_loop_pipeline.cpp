@@ -141,7 +141,7 @@ TEST(LoopPipeline, IteratesTopKUntilOneCandidateIsAccepted)
   fixture.coarse->results = {failure, successfulRegistration()};
   fixture.index->candidates = {
     LoopCandidate{0U, 0U, 0.10, 0.0}, LoopCandidate{1U, 1U, 0.30, 0.0}};
-  auto pipeline = fixture.make(LoopPipelineConfig{5U, 0U, 0U, 0U, 1U, 10U});
+  auto pipeline = fixture.make(LoopPipelineConfig{5U, 0U, 0U, 0U, 1U, 10U, 1.0});
   seed(pipeline);
 
   const auto events = pipeline.process(frame(2U));
@@ -165,7 +165,7 @@ TEST(LoopPipeline, RejectedCandidatesDoNotAddLoopFactors)
   fixture.coarse->results = {failure, failure};
   fixture.index->candidates = {
     LoopCandidate{0U, 0U, 0.10, 0.0}, LoopCandidate{1U, 1U, 0.30, 0.0}};
-  auto pipeline = fixture.make(LoopPipelineConfig{2U, 0U, 0U, 0U, 1U, 10U});
+  auto pipeline = fixture.make(LoopPipelineConfig{2U, 0U, 0U, 0U, 1U, 10U, 1.0});
   seed(pipeline);
 
   const auto events = pipeline.process(frame(2U));
@@ -176,12 +176,26 @@ TEST(LoopPipeline, RejectedCandidatesDoNotAddLoopFactors)
   EXPECT_EQ(events.back().graph_factor_count, 3U);
 }
 
+TEST(LoopPipeline, RejectsCandidatesBeyondConfiguredDescriptorDistance)
+{
+  Fixture fixture;
+  fixture.index->candidates = {LoopCandidate{0U, 0U, 0.30, 0.0}};
+  auto pipeline = fixture.make(LoopPipelineConfig{2U, 0U, 0U, 0U, 1U, 10U, 0.20});
+  seed(pipeline);
+
+  const auto events = pipeline.process(frame(2U));
+
+  ASSERT_EQ(events.size(), 1U);
+  EXPECT_EQ(events.front().reason, "no_loop_candidates");
+  EXPECT_EQ(fixture.coarse->calls, 0U);
+}
+
 TEST(LoopPipeline, AcceptsAtMostOneLoopAndHonorsPolicyWindow)
 {
   Fixture fixture;
   fixture.index->candidates = {
     LoopCandidate{0U, 0U, 0.10, 0.0}, LoopCandidate{1U, 1U, 0.30, 0.0}};
-  auto pipeline = fixture.make(LoopPipelineConfig{2U, 0U, 0U, 0U, 2U, 10U});
+  auto pipeline = fixture.make(LoopPipelineConfig{2U, 0U, 0U, 0U, 2U, 10U, 1.0});
   seed(pipeline);
   const auto accepted = pipeline.process(frame(2U));
   ASSERT_EQ(accepted.size(), 1U);
@@ -198,7 +212,7 @@ TEST(LoopPipeline, AcceptsAtMostOneLoopAndHonorsPolicyWindow)
 TEST(LoopPipeline, QueueIsBoundedUnderConcurrentProducers)
 {
   Fixture fixture;
-  auto pipeline = fixture.make(LoopPipelineConfig{2U, 0U, 0U, 0U, 1U, 8U});
+  auto pipeline = fixture.make(LoopPipelineConfig{2U, 0U, 0U, 0U, 1U, 8U, 1.0});
   std::atomic<std::size_t> accepted{0U};
   std::vector<std::thread> producers;
   for (std::uint64_t id = 0U; id < 32U; ++id) {
@@ -219,7 +233,7 @@ TEST(LoopPipeline, QueueIsBoundedUnderConcurrentProducers)
 TEST(LoopPipeline, ProcessNextConsumesOneQueuedFrameOutsideProducerPath)
 {
   Fixture fixture;
-  auto pipeline = fixture.make(LoopPipelineConfig{2U, 0U, 0U, 0U, 1U, 2U});
+  auto pipeline = fixture.make(LoopPipelineConfig{2U, 0U, 0U, 0U, 1U, 2U, 1.0});
   ASSERT_TRUE(pipeline.enqueue(frame(0U)));
   ASSERT_TRUE(pipeline.enqueue(frame(1U)));
 

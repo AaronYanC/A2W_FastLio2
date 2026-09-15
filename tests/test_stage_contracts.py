@@ -124,11 +124,9 @@ class RegistrationConfigurationTests(unittest.TestCase):
         self.assertEqual(
             set(parameters["loop_pipeline"]),
             {
-                "top_k", "exclude_recent", "local_map_before", "local_map_after",
                 "minimum_keyframes_between_accepted_loops", "queue_capacity",
             },
         )
-        self.assertGreater(parameters["loop_pipeline"]["top_k"], 1)
         self.assertGreater(parameters["loop_pipeline"]["queue_capacity"], 0)
 
 
@@ -175,6 +173,35 @@ class PackageDependencyTests(unittest.TestCase):
             }
         )
         self.assertIn("gtsam", packages["a2w_fastlio_mapping"])
+
+
+class MappingOutputContractTests(unittest.TestCase):
+    def test_mapping_topics_profile_uses_preview_not_full_map_dds(self):
+        config_path = (
+            REPOSITORY_ROOT / "src" / "a2w_fastlio_mapping" / "config" /
+            "mapping_topics.yaml"
+        )
+        with config_path.open("r", encoding="utf-8") as stream:
+            parameters = yaml.safe_load(stream)["/**"]["ros__parameters"]
+
+        self.assertEqual(parameters["optimized_map_preview_topic"],
+                         "/mapping/optimized_map_preview")
+        self.assertNotIn("optimized_map_topic", parameters)
+        self.assertEqual(parameters["preview_qos_durability"], "transient_local")
+        self.assertEqual(parameters["preview_qos_depth"], 1)
+        self.assertGreater(parameters["preview_voxel_leaf_m"], 0.0)
+        self.assertGreater(parameters["preview_max_points"], 0)
+
+    def test_mapping_launch_has_one_owner_and_no_localization_backend(self):
+        launch_path = (
+            REPOSITORY_ROOT / "src" / "a2w_fastlio2_bringup" / "launch" /
+            "mapping.launch.py"
+        )
+        source = launch_path.read_text(encoding="utf-8")
+        self.assertEqual(source.count('executable="mapping_backend_node"'), 1)
+        self.assertEqual(source.count('executable="mapping_ingress_node"'), 1)
+        self.assertNotIn("localization_backend", source)
+        self.assertNotIn("localization.launch.py", source)
 
 
 class AlgorithmBoundaryTests(unittest.TestCase):

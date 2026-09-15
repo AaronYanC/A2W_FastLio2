@@ -26,6 +26,7 @@ struct LoopPipelineConfig
   std::size_t local_map_after{5U};
   std::size_t minimum_keyframes_between_accepted_loops{10U};
   std::size_t queue_capacity{32U};
+  double maximum_descriptor_distance{0.2};
 };
 
 struct LoopPipelineEvent

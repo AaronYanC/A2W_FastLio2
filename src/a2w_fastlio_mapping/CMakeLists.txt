@@ -7,12 +7,15 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(a2w_fastlio_common REQUIRED)
+find_package(a2w_fastlio_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(GTSAM 4.1 REQUIRED)
 find_package(message_filters REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(pcl_conversions REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
 
 add_library(keyframe_manager src/keyframe_manager.cpp)
 target_include_directories(keyframe_manager PUBLIC
@@ -45,21 +48,50 @@ target_include_directories(loop_pipeline PUBLIC
 target_link_libraries(loop_pipeline pose_graph_optimizer)
 ament_target_dependencies(loop_pipeline a2w_fastlio_common)
 
+add_library(map_odom_manager src/map_odom_manager.cpp)
+target_include_directories(map_odom_manager PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+ament_target_dependencies(map_odom_manager a2w_fastlio_common)
+
+add_library(optimized_map_builder src/optimized_map_builder.cpp)
+target_include_directories(optimized_map_builder PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+ament_target_dependencies(optimized_map_builder a2w_fastlio_common)
+
+add_library(global_tf_ownership src/global_tf_ownership.cpp)
+target_include_directories(global_tf_ownership PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
 add_executable(mapping_ingress_node src/mapping_ingress_node.cpp)
 target_link_libraries(mapping_ingress_node keyframe_manager frontend_message_adapter)
 ament_target_dependencies(mapping_ingress_node message_filters nav_msgs rclcpp sensor_msgs)
 
+add_executable(mapping_backend_node src/mapping_backend_node.cpp)
+target_link_libraries(mapping_backend_node
+  frontend_message_adapter global_tf_ownership loop_pipeline map_odom_manager optimized_map_builder
+  pose_graph_optimizer)
+ament_target_dependencies(mapping_backend_node
+  a2w_fastlio_msgs geometry_msgs message_filters nav_msgs pcl_conversions rclcpp sensor_msgs tf2_ros)
+
 install(DIRECTORY include/ DESTINATION include)
 install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
-install(TARGETS keyframe_manager frontend_message_adapter pose_graph_optimizer loop_pipeline
+install(TARGETS
+  keyframe_manager frontend_message_adapter pose_graph_optimizer loop_pipeline map_odom_manager
+  optimized_map_builder global_tf_ownership
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
 )
-install(TARGETS mapping_ingress_node DESTINATION lib/${PROJECT_NAME})
+install(TARGETS mapping_ingress_node mapping_backend_node DESTINATION lib/${PROJECT_NAME})
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
-ament_export_dependencies(a2w_fastlio_common GTSAM)
+ament_export_dependencies(a2w_fastlio_common a2w_fastlio_msgs GTSAM)
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
@@ -79,8 +111,24 @@ if(BUILD_TESTING)
   ament_add_gtest(test_loop_pipeline test/test_loop_pipeline.cpp)
   target_link_libraries(test_loop_pipeline loop_pipeline)
 
+  ament_add_gtest(test_map_odom_manager test/test_map_odom_manager.cpp)
+  target_link_libraries(test_map_odom_manager map_odom_manager)
+
+  ament_add_gtest(test_optimized_map_builder test/test_optimized_map_builder.cpp)
+  target_link_libraries(test_optimized_map_builder optimized_map_builder)
+
+  ament_add_gtest(test_global_tf_ownership test/test_global_tf_ownership.cpp)
+  target_link_libraries(test_global_tf_ownership global_tf_ownership)
+
   add_launch_test(test/test_mapping_ingress_launch.py
     TIMEOUT 30
+    ENV
+      "RMW_IMPLEMENTATION=rmw_cyclonedds_cpp"
+      "ROS_LOG_DIR=${CMAKE_CURRENT_BINARY_DIR}/ros_logs"
+  )
+
+  add_launch_test(test/test_mapping_outputs_launch.py
+    TIMEOUT 45
     ENV
       "RMW_IMPLEMENTATION=rmw_cyclonedds_cpp"
       "ROS_LOG_DIR=${CMAKE_CURRENT_BINARY_DIR}/ros_logs"
