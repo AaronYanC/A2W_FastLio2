@@ -409,7 +409,7 @@ git commit -m "feat(bringup): launch Stage 1 keyframe ingestion"
 **Interfaces:**
 - Produces a buildable offline Stage 1 checkpoint; no runtime claim about the disconnected robot.
 
-- [ ] **Step 1: Confirm forbidden files are unchanged**
+- [x] **Step 1: Confirm forbidden files are unchanged**
 
 ```bash
 git diff main...HEAD -- src/FAST_LIO_Hesai src/a2w_fastlio2_bringup/config/jt128.yaml maps
@@ -417,7 +417,7 @@ git diff main...HEAD -- src/FAST_LIO_Hesai src/a2w_fastlio2_bringup/config/jt128
 
 Expected: no output.
 
-- [ ] **Step 2: Run full build and tests**
+- [x] **Step 2: Run full build and tests**
 
 ```bash
 ./scripts/build.sh
@@ -430,7 +430,7 @@ colcon test-result --verbose
 Expected: zero build/test failures. Existing portability, DDS generation, path hygiene, and launcher
 tests remain green.
 
-- [ ] **Step 3: Inspect repository and dependency boundary**
+- [x] **Step 3: Inspect repository and dependency boundary**
 
 ```bash
 git status --short

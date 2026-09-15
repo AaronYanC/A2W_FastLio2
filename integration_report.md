@@ -1,6 +1,6 @@
 # A2W Hesai JT128 SLAM / Localization 集成报告（Stage 0）
 
-生成日期：2026-09-15  
+生成日期：2026-09-15
 范围：只读检查与集成设计；本阶段不修改算法代码、不连接机器人、不执行实机测试。
 
 ## 1. 结论
@@ -626,4 +626,3 @@ Nano-GICP/PGO/map-match 耗时、队列深度与更新频率。性能阈值需�
 2. 批准 package 边界、Map Bundle V1 和 Mapping/Localization 分 launch 设计。
 3. 下次连接机器人后采集一次 Topic header、频率、QoS 和完整 TF 快照，决定 frame
    policy；在此之前可先做纯离线 KeyFrameManager 单元测试。
-
