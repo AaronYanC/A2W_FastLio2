@@ -11,7 +11,7 @@ earlier Stages:
 
 - [x] Stage 2: `2026-09-15-stage2-scan-context-top-k.md`
 - [x] Stage 3: `2026-09-15-stage3-registration-pipeline.md`
-- [ ] Stage 4: `2026-09-15-stage4-pose-graph.md`
+- [x] Stage 4: `2026-09-15-stage4-pose-graph.md`
 - [ ] Stage 5: `2026-09-15-stage5-mapping-outputs.md`
 - [ ] Stage 6: `2026-09-15-stage6-map-bundle.md`
 - [ ] Stage 7: `2026-09-15-stage7-localization.md`

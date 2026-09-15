@@ -90,7 +90,7 @@ std::size_t pending() const noexcept;
 - [x] **Step 1: Add RED tests** for invalid noise values and missing GTSAM dependency declaration.
 - [x] **Step 2: Add every graph parameter and document coordinate conventions.**
 - [x] **Step 3: Run full workspace verification and protected-path diff checks.**
-- [ ] **Step 4: Commit and push**:
+- [x] **Step 4: Commit and push**:
 
 ```bash
 git add src/a2w_fastlio_mapping tests README.md
