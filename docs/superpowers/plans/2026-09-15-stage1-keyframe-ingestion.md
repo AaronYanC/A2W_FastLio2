@@ -147,11 +147,11 @@ git commit -m "feat(common): add frontend frame and keyframe types"
 - Produces: `KeyframeDecision { KeyframeDecisionReason reason; std::optional<KeyFrame> keyframe; }`.
 - Produces: `KeyframeManager::consider(const FrontendFrame&) -> KeyframeDecision`, `size() -> std::size_t`, and `reset()`.
 
-- [ ] **Step 1: Write failing tests for first-frame acceptance and below-threshold rejection**
+- [x] **Step 1: Write failing tests for first-frame acceptance and below-threshold rejection**
 
 Use a real one-point PCL cloud. Assert that the first valid frame becomes keyframe id 0, and a later frame below every threshold returns `kRejectedBelowThreshold` without increasing `size()`.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 Run:
 
@@ -161,15 +161,15 @@ colcon build --symlink-install --packages-select a2w_fastlio_common a2w_fastlio_
 
 Expected: compilation fails because `KeyframeManager` does not exist.
 
-- [ ] **Step 3: Implement first-frame acceptance and below-threshold rejection**
+- [x] **Step 3: Implement first-frame acceptance and below-threshold rejection**
 
 Validate configuration values as finite and greater than zero. Normalize valid quaternions before storage. Set `optimized_pose = odom_pose` in Stage 1. Assign ids only to accepted frames.
 
-- [ ] **Step 4: Verify GREEN for the first behavior**
+- [x] **Step 4: Verify GREEN for the first behavior**
 
 Run the mapping package tests; both new assertions must pass.
 
-- [ ] **Step 5: Write failing table-driven tests for all three OR thresholds**
+- [x] **Step 5: Write failing table-driven tests for all three OR thresholds**
 
 Use hand-derived inputs and expected reasons:
 
@@ -182,7 +182,7 @@ Use hand-derived inputs and expected reasons:
 
 The test must establish that comparisons are inclusive (`>=`) and that accepted ids are contiguous.
 
-- [ ] **Step 6: Verify RED, then implement the OR policy**
+- [x] **Step 6: Verify RED, then implement the OR policy**
 
 Compute rotation distance as:
 
@@ -192,11 +192,11 @@ Compute rotation distance as:
 
 Use the last accepted keyframe, not the last received frame, as the threshold reference.
 
-- [ ] **Step 7: Verify GREEN, then test invalid input paths**
+- [x] **Step 7: Verify GREEN, then test invalid input paths**
 
 Add independent failing tests for an empty cloud, NaN translation, zero/NaN quaternion, and a timestamp not strictly newer than the last accepted keyframe. Each must return its exact rejection reason and must not mutate count/id state.
 
-- [ ] **Step 8: Implement validation and verify the full package**
+- [x] **Step 8: Implement validation and verify the full package**
 
 Run:
 
@@ -207,7 +207,7 @@ colcon test-result --verbose
 
 Expected: all selection, boundary, invalid-input, and state-mutation tests pass.
 
-- [ ] **Step 9: Commit the keyframe policy**
+- [x] **Step 9: Commit the keyframe policy**
 
 ```bash
 git add src/a2w_fastlio_mapping
