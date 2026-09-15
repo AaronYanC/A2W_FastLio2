@@ -21,6 +21,7 @@ add_library(${PROJECT_NAME}
   src/local_map_selector.cpp
   src/map_matcher.cpp
   src/localization_manager.cpp
+  src/localization_monitor.cpp
 )
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -50,6 +51,8 @@ if(BUILD_TESTING)
   target_link_libraries(test_map_matcher ${PROJECT_NAME})
   ament_add_gtest(test_localization_manager test/test_localization_manager.cpp)
   target_link_libraries(test_localization_manager ${PROJECT_NAME})
+  ament_add_gtest(test_localization_monitor test/test_localization_monitor.cpp)
+  target_link_libraries(test_localization_monitor ${PROJECT_NAME})
 
   add_executable(create_test_bundle test/create_test_bundle.cpp)
   target_link_libraries(create_test_bundle a2w_fastlio_map::a2w_fastlio_map)

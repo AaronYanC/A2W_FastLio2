@@ -12,7 +12,7 @@ import launch
 import launch_ros.actions
 import launch_testing.actions
 import launch_testing.asserts
-from a2w_fastlio_msgs.msg import RegistrationStatus
+from a2w_fastlio_msgs.msg import LocalizationStatus, RegistrationStatus
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Odometry, Path as PathMessage
 import rclpy
@@ -54,10 +54,13 @@ def generate_test_description():
             "localized_odom_topic": "/stage7/localized_odom",
             "path_topic": "/stage7/path",
             "registration_status_topic": "/stage7/status",
+            "localization_status_topic": "/stage7/localization_status",
             "global_tf_owner_topic": "/stage7/owner",
             "owner_conflict_window_ms": 100,
             "owner_heartbeat_ms": 25,
             "match_interval_ms": 10000,
+            "monitor.initialization_successes_required": 1,
+            "monitor.correction_stale_after_ms": 50,
             "local_map.selection_radius_m": 20.0,
             "local_map.minimum_neighbors": 1,
             "local_map.voxel_leaf_m": 0.0,
@@ -135,11 +138,15 @@ class TestLocalizationLaunch(unittest.TestCase):
             durability=DurabilityPolicy.TRANSIENT_LOCAL)
         self.odom_pub = self.node.create_publisher(Odometry, "/stage7/odom", qos)
         self.cloud_pub = self.node.create_publisher(PointCloud2, "/stage7/cloud", qos)
-        self.poses, self.odoms, self.paths, self.statuses, self.transforms = [], [], [], [], []
+        self.poses, self.odoms, self.paths = [], [], []
+        self.statuses, self.localization_statuses, self.transforms = [], [], []
         self.node.create_subscription(PoseStamped, "/stage7/pose", self.poses.append, qos)
         self.node.create_subscription(Odometry, "/stage7/localized_odom", self.odoms.append, qos)
         self.node.create_subscription(PathMessage, "/stage7/path", self.paths.append, transient)
         self.node.create_subscription(RegistrationStatus, "/stage7/status", self.statuses.append, qos)
+        self.node.create_subscription(
+            LocalizationStatus, "/stage7/localization_status",
+            self.localization_statuses.append, qos)
         self.node.create_subscription(TFMessage, "/tf", self.transforms.append, 100)
 
     def tearDown(self):
@@ -150,7 +157,9 @@ class TestLocalizationLaunch(unittest.TestCase):
         sequence = 0
         while time.monotonic() < deadline and not (
                 self.poses and self.odoms and self.paths and
-                any(status.accepted for status in self.statuses)):
+                any(status.accepted for status in self.statuses) and
+                any(status.state == LocalizationStatus.LOCALIZED
+                    for status in self.localization_statuses)):
             stamp = 10_000_000_000 + sequence * 1_000_000
             self.odom_pub.publish(make_odom(stamp))
             self.cloud_pub.publish(make_cloud(stamp))
@@ -169,6 +178,37 @@ class TestLocalizationLaunch(unittest.TestCase):
         self.assertEqual(self.odoms[-1].child_frame_id, "body")
         self.assertAlmostEqual(self.poses[-1].pose.position.x, 5.0, delta=0.2)
         self.assertTrue(any(status.accepted for status in self.statuses))
+        localized = next(
+            status for status in self.localization_statuses
+            if status.state == LocalizationStatus.LOCALIZED)
+        accepted = next(status for status in self.statuses if status.accepted)
+        self.assertEqual(localized.state_label, "LOCALIZED")
+        self.assertEqual(localized.reason, "initialization_confirmed")
+        self.assertTrue(localized.correction_available)
+        self.assertEqual(localized.correction_age_ns, 0)
+        self.assertEqual(localized.candidate_id, accepted.candidate_id)
+        self.assertAlmostEqual(localized.fitness, accepted.fitness)
+        self.assertAlmostEqual(localized.overlap, accepted.overlap)
+        self.assertEqual(localized.correspondence_count, accepted.correspondence_count)
+        self.assertTrue(localized.hardware_validation_pending)
+
+        lost_deadline = time.monotonic() + 5.0
+        while time.monotonic() < lost_deadline and not any(
+                status.state == LocalizationStatus.LOST
+                for status in self.localization_statuses):
+            stamp = 10_000_000_000 + sequence * 1_000_000
+            self.odom_pub.publish(make_odom(stamp))
+            self.cloud_pub.publish(make_cloud(stamp))
+            sequence += 1
+            rclpy.spin_once(self.node, timeout_sec=0.05)
+        lost = next(
+            status for status in self.localization_statuses
+            if status.state == LocalizationStatus.LOST)
+        self.assertEqual(lost.reason, "correction_stale")
+        lost_ns = lost.stamp.sec * 1_000_000_000 + lost.stamp.nanosec
+        self.assertTrue(all(
+            pose.header.stamp.sec * 1_000_000_000 + pose.header.stamp.nanosec < lost_ns
+            for pose in self.poses))
 
         tf_deadline = time.monotonic() + 3.0
         while time.monotonic() < tf_deadline and not any(
@@ -185,6 +225,7 @@ class TestLocalizationLaunch(unittest.TestCase):
 
         pose_info = self.node.get_publishers_info_by_topic("/stage7/pose")
         path_info = self.node.get_publishers_info_by_topic("/stage7/path")
+        status_info = self.node.get_publishers_info_by_topic("/stage7/localization_status")
         self.assertEqual(len(pose_info), 1)
         self.assertEqual(pose_info[0].qos_profile.reliability, ReliabilityPolicy.RELIABLE)
         self.assertEqual(pose_info[0].qos_profile.durability, DurabilityPolicy.VOLATILE)
@@ -192,6 +233,9 @@ class TestLocalizationLaunch(unittest.TestCase):
         self.assertEqual(len(path_info), 1)
         self.assertEqual(path_info[0].qos_profile.durability, DurabilityPolicy.TRANSIENT_LOCAL)
         self.assertEqual(path_info[0].qos_profile.depth, 1)
+        self.assertEqual(len(status_info), 1)
+        self.assertEqual(status_info[0].qos_profile.durability, DurabilityPolicy.VOLATILE)
+        self.assertEqual(status_info[0].qos_profile.depth, 20)
 
 
 @launch_testing.post_shutdown_test()

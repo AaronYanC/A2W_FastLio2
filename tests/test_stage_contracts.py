@@ -276,6 +276,40 @@ class LocalizationContractTests(unittest.TestCase):
             },
         )
 
+    def test_localization_monitor_profile_exposes_all_transition_gates(self):
+        config_path = (
+            REPOSITORY_ROOT / "src" / "a2w_fastlio_localization" / "config" /
+            "relocalization.yaml"
+        )
+        with config_path.open("r", encoding="utf-8") as stream:
+            monitor = yaml.safe_load(stream)["/**"]["ros__parameters"]["monitor"]
+        self.assertEqual(
+            set(monitor),
+            {
+                "initialization_successes_required", "degraded_failures_required",
+                "lost_failures_required", "normal_recovery_successes_required",
+                "relocalization_successes_required", "correction_stale_after_ms",
+                "relocalization_timeout_ms", "strong_maximum_fitness",
+                "strong_minimum_overlap", "strong_minimum_correspondences",
+            },
+        )
+        self.assertGreaterEqual(
+            monitor["lost_failures_required"], monitor["degraded_failures_required"])
+        self.assertGreater(monitor["relocalization_successes_required"], 1)
+        self.assertGreater(monitor["correction_stale_after_ms"], 0)
+        self.assertGreater(monitor["relocalization_timeout_ms"], 0)
+        self.assertGreaterEqual(monitor["strong_minimum_overlap"], 0.0)
+        self.assertLessEqual(monitor["strong_minimum_overlap"], 1.0)
+
+    def test_localization_topics_include_observable_health_status(self):
+        config_path = (
+            REPOSITORY_ROOT / "src" / "a2w_fastlio_localization" / "config" /
+            "localization_topics.yaml"
+        )
+        with config_path.open("r", encoding="utf-8") as stream:
+            parameters = yaml.safe_load(stream)["/**"]["ros__parameters"]
+        self.assertEqual(parameters["localization_status_topic"], "/localization/status")
+
 
 class AlgorithmBoundaryTests(unittest.TestCase):
     @staticmethod

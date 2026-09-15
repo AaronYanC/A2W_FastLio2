@@ -29,16 +29,16 @@
 - Consumes: monotonic `MatchEvidence` and explicit relocalization commands.
 - Produces: immutable `LocalizationStatusSnapshot`.
 
-- [ ] **Step 1: Write a RED transition-table test** covering initialization success, intermittent failures, consecutive degradation, stale correction loss, explicit relocalization start, failed attempts, strong recovery, multi-frame recovery, and reset.
-- [ ] **Step 2: Add RED tests** for non-monotonic time, invalid configuration, boundary thresholds, hysteresis, and no impossible direct `LOST -> LOCALIZED` transition without accepted relocalization evidence.
-- [ ] **Step 3: Implement the deterministic transition API**:
+- [x] **Step 1: Write a RED transition-table test** covering initialization success, intermittent failures, consecutive degradation, stale correction loss, explicit relocalization start, failed attempts, strong recovery, multi-frame recovery, and reset.
+- [x] **Step 2: Add RED tests** for non-monotonic time, invalid configuration, boundary thresholds, hysteresis, and no impossible direct `LOST -> LOCALIZED` transition without accepted relocalization evidence.
+- [x] **Step 3: Implement the deterministic transition API**:
 
 ```cpp
 LocalizationStatusSnapshot update(const MatchEvidence & evidence);
 LocalizationStatusSnapshot beginRelocalization(std::int64_t stamp_ns);
 LocalizationStatusSnapshot reset(std::int64_t stamp_ns);
 ```
-- [ ] **Step 4: Run GREEN** and property-style generated event sequences asserting state invariants.
+- [x] **Step 4: Run GREEN** and property-style generated event sequences asserting state invariants.
 
 ### Task 2: ROS status message and integration
 
@@ -52,18 +52,18 @@ LocalizationStatusSnapshot reset(std::int64_t stamp_ns);
 - Produces: `/localization/status` with state, reason, counters, correction age, match metrics,
   and `hardware_validation_pending=true` until final hardware validation.
 
-- [ ] **Step 1: Write RED launch tests** for status enum, reason, failure/success counters, correction age, candidate ID, fitness, overlap, and hardware-validation-pending flag.
-- [ ] **Step 2: Integrate monitor snapshots** so status timestamps come from processed data/clock and the node cannot publish `LOCALIZED` without accepted evidence.
-- [ ] **Step 3: Run GREEN** with injected timeout and recovery sequences.
+- [x] **Step 1: Write RED launch tests** for status enum, reason, failure/success counters, correction age, candidate ID, fitness, overlap, and hardware-validation-pending flag.
+- [x] **Step 2: Integrate monitor snapshots** so status timestamps come from processed data/clock and the node cannot publish `LOCALIZED` without accepted evidence.
+- [x] **Step 3: Run GREEN** with injected timeout and recovery sequences.
 
 ### Task 3: Stage 8 checkpoint
 
 **Interfaces:**
 - Produces: documented state table and fully parameterized transition configuration.
 
-- [ ] **Step 1: Document every transition and parameter with a state table.**
-- [ ] **Step 2: Run full workspace build/tests, offline launch tests, path/protected checks.**
-- [ ] **Step 3: Commit and push**:
+- [x] **Step 1: Document every transition and parameter with a state table.**
+- [x] **Step 2: Run full workspace build/tests, offline launch tests, path/protected checks.**
+- [x] **Step 3: Commit and push**:
 
 ```bash
 git add src/a2w_fastlio_msgs src/a2w_fastlio_localization tests README.md

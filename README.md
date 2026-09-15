@@ -265,6 +265,32 @@ TF owner 和 Map Bundle 内容不变性。真实 JT128 Topic、帧、时间戳�
 Offline implementation and verification complete; JT128 hardware validation pending.
 ```
 
+## Stage 8：LocalizationMonitor（离线实现）
+
+纯 C++ `LocalizationMonitor` 根据配准证据、连续成功/失败次数、修正年龄和重定位超时维护：
+
+```text
+INITIALIZING → LOCALIZED → DEGRADED → LOST → RELOCALIZING → LOCALIZED
+```
+
+`LOST` 不能被普通局部匹配直接恢复，必须显式进入 `RELOCALIZING` 并通过强匹配或多帧一致
+匹配门槛。`LOST/RELOCALIZING` 时节点停止发布依赖旧修正的定位 pose/odom/path 与
+`map → camera_init`；失败匹配不会刷新修正年龄。可观察状态发布在 `/localization/status`，
+包含状态、原因、计数器、修正年龄、候选 ID、配准指标以及固定为 `true` 的
+`hardware_validation_pending`。
+
+所有状态转换参数位于：
+
+```text
+src/a2w_fastlio_localization/config/relocalization.yaml
+```
+
+参数目前只经过确定性状态机测试与合成 ROS2 集成测试，尚未使用 JT128 调参。
+
+```text
+Offline implementation and verification complete; JT128 hardware validation pending.
+```
+
 ## 建图并保存 PCD
 
 ```bash

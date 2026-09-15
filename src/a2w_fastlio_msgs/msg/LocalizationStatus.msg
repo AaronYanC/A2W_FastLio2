@@ -1,0 +1,20 @@
+uint8 INITIALIZING=0
+uint8 LOCALIZED=1
+uint8 DEGRADED=2
+uint8 LOST=3
+uint8 RELOCALIZING=4
+
+builtin_interfaces/Time stamp
+uint8 state
+string state_label
+string reason
+uint32 consecutive_successes
+uint32 consecutive_failures
+uint32 relocalization_successes
+bool correction_available
+int64 correction_age_ns
+uint64 candidate_id
+float64 fitness
+float64 overlap
+uint64 correspondence_count
+bool hardware_validation_pending

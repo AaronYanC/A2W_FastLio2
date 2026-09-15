@@ -7,6 +7,7 @@ find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/GlobalTfOwner.msg"
+  "msg/LocalizationStatus.msg"
   "msg/RegistrationStatus.msg"
   "srv/SaveMapBundle.srv"
   DEPENDENCIES builtin_interfaces

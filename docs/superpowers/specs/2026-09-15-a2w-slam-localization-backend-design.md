@@ -299,6 +299,31 @@ INITIALIZING -> LOCALIZED -> DEGRADED -> LOST -> RELOCALIZING -> LOCALIZED
 All transitions use explicit counters, timeouts, and hysteresis. A failed relocalization attempt
 remains observable and does not publish a newly valid global correction.
 
+The Stage 8 transition contract is:
+
+| Current state | Evidence or command | Next state | Global-output rule |
+| --- | --- | --- | --- |
+| `INITIALIZING` | configured consecutive accepted normal matches | `LOCALIZED` | Enable only after the threshold is met |
+| `INITIALIZING` | rejected/no match | `INITIALIZING` | Disabled |
+| `LOCALIZED` | fewer than `degraded_failures_required` failures | `LOCALIZED` | Keep the last non-stale correction |
+| `LOCALIZED` | configured consecutive failures | `DEGRADED` | Keep the last non-stale correction |
+| `DEGRADED` | configured consecutive normal successes | `LOCALIZED` | Continue with recovered correction |
+| `LOCALIZED` or `DEGRADED` | failure count reaches `lost_failures_required`, or correction age reaches its boundary | `LOST` | Disable pose/odom/path and TF based on the old correction |
+| `LOST` | ordinary local match, accepted or rejected | `LOST` | Disabled; no direct recovery is permitted |
+| `LOST` | explicit global-relocalization start | `RELOCALIZING` | Disabled |
+| `RELOCALIZING` | rejected/ambiguous evidence | `RELOCALIZING` | Disabled and observable |
+| `RELOCALIZING` | strong single result or configured consecutive accepted global results | `LOCALIZED` | Enable the newly validated correction |
+| `RELOCALIZING` | timeout boundary reached | `LOST` | Disabled |
+| any active state | explicit reset | `INITIALIZING` | Disabled |
+
+Every boundary in this table is inclusive and driven by monotonic data timestamps. Parameters are
+declared under `monitor.*` in `a2w_fastlio_localization/config/relocalization.yaml`: initialization,
+degradation, loss, normal-recovery and relocalization counts; correction staleness and relocalization
+timeout; and strong-result fitness, overlap and correspondence thresholds. `/localization/status`
+publishes the state, transition reason, counters, correction age, candidate ID and registration
+metrics. Until the final JT128 procedure succeeds, its `hardware_validation_pending` field remains
+true.
+
 ## 10. Topic, frame, timestamp, and QoS contract
 
 Every Topic name, frame name, QoS policy, depth, queue size, worker count, path, and algorithm

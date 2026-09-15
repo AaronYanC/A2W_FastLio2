@@ -6,6 +6,7 @@
     localized_odom_topic: "/localization/odom"
     path_topic: "/localization/path"
     registration_status_topic: "/localization/registration_status"
+    localization_status_topic: "/localization/status"
     global_tf_owner_topic: "/a2w_fastlio/global_tf_owner"
     map_frame: "map"
     odom_frame: "camera_init"

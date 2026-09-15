@@ -19,6 +19,7 @@ def generate_launch_description():
     jt128_config = LaunchConfiguration("jt128_config")
     localization_config = LaunchConfiguration("localization_config")
     matching_config = LaunchConfiguration("matching_config")
+    relocalization_config = LaunchConfiguration("relocalization_config")
     topics_config = LaunchConfiguration("topics_config")
     rviz = LaunchConfiguration("rviz")
     use_sim_time = LaunchConfiguration("use_sim_time")
@@ -39,6 +40,10 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "matching_config",
             default_value=os.path.join(localization_share, "config", "map_matching.yaml"),
+        ),
+        DeclareLaunchArgument(
+            "relocalization_config",
+            default_value=os.path.join(localization_share, "config", "relocalization.yaml"),
         ),
         DeclareLaunchArgument(
             "topics_config",
@@ -65,6 +70,7 @@ def generate_launch_description():
         parameters=[
             localization_config,
             matching_config,
+            relocalization_config,
             topics_config,
             {"map_bundle_path": ParameterValue(map_bundle_path, value_type=str)},
             {"use_sim_time": ParameterValue(use_sim_time, value_type=bool)},

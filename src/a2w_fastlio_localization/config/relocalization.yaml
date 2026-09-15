@@ -1,0 +1,14 @@
+/**:
+  ros__parameters:
+    # Offline-safe state-machine defaults. Tune only during final JT128 validation.
+    monitor:
+      initialization_successes_required: 2
+      degraded_failures_required: 2
+      lost_failures_required: 5
+      normal_recovery_successes_required: 2
+      relocalization_successes_required: 3
+      correction_stale_after_ms: 3000
+      relocalization_timeout_ms: 10000
+      strong_maximum_fitness: 0.08
+      strong_minimum_overlap: 0.70
+      strong_minimum_correspondences: 100

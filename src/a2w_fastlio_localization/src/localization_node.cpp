@@ -9,6 +9,7 @@
 #include <string>
 
 #include <a2w_fastlio_msgs/msg/global_tf_owner.hpp>
+#include <a2w_fastlio_msgs/msg/localization_status.hpp>
 #include <a2w_fastlio_msgs/msg/registration_status.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
@@ -25,6 +26,7 @@
 #include "a2w_fastlio_common/global_tf_ownership.hpp"
 #include "a2w_fastlio_localization/local_map_selector.hpp"
 #include "a2w_fastlio_localization/localization_manager.hpp"
+#include "a2w_fastlio_localization/localization_monitor.hpp"
 #include "a2w_fastlio_localization/map_matcher.hpp"
 #include "a2w_fastlio_map/map_bundle_reader.hpp"
 
@@ -141,6 +143,7 @@ public:
         const auto selection = selector_->select(predicted);
         return matcher_->match(frame, selection);
       });
+    monitor_ = std::make_unique<LocalizationMonitor>(monitorConfig());
 
     const auto input_qos = qos("input", 20, false);
     const auto output_qos = qos("output", 20, false);
@@ -157,6 +160,9 @@ public:
       declare_parameter<std::string>("path_topic", "/localization/path"), path_qos);
     status_publisher_ = create_publisher<a2w_fastlio_msgs::msg::RegistrationStatus>(
       declare_parameter<std::string>("registration_status_topic", "/localization/registration_status"),
+      output_qos);
+    monitor_status_publisher_ = create_publisher<a2w_fastlio_msgs::msg::LocalizationStatus>(
+      declare_parameter<std::string>("localization_status_topic", "/localization/status"),
       output_qos);
     owner_topic_ = declare_parameter<std::string>(
       "global_tf_owner_topic", "/a2w_fastlio/global_tf_owner");
@@ -334,6 +340,46 @@ private:
     return config;
   }
 
+  LocalizationMonitorConfig monitorConfig()
+  {
+    LocalizationMonitorConfig config;
+    const auto positiveCount = [this](const std::string & name, const std::size_t value) {
+        const auto declared = declare_parameter<int>(name, static_cast<int>(value));
+        if (declared <= 0) {
+          throw std::invalid_argument{name + " must be positive"};
+        }
+        return static_cast<std::size_t>(declared);
+      };
+    config.initialization_successes_required = positiveCount(
+      "monitor.initialization_successes_required", config.initialization_successes_required);
+    config.degraded_failures_required = positiveCount(
+      "monitor.degraded_failures_required", config.degraded_failures_required);
+    config.lost_failures_required = positiveCount(
+      "monitor.lost_failures_required", config.lost_failures_required);
+    config.normal_recovery_successes_required = positiveCount(
+      "monitor.normal_recovery_successes_required", config.normal_recovery_successes_required);
+    config.relocalization_successes_required = positiveCount(
+      "monitor.relocalization_successes_required", config.relocalization_successes_required);
+    const auto stale_ms = declare_parameter<int>(
+      "monitor.correction_stale_after_ms",
+      static_cast<int>(config.correction_stale_after_ns / 1'000'000LL));
+    const auto timeout_ms = declare_parameter<int>(
+      "monitor.relocalization_timeout_ms",
+      static_cast<int>(config.relocalization_timeout_ns / 1'000'000LL));
+    if (stale_ms <= 0 || timeout_ms <= 0) {
+      throw std::invalid_argument{"monitor time thresholds must be positive"};
+    }
+    config.correction_stale_after_ns = static_cast<std::int64_t>(stale_ms) * 1'000'000LL;
+    config.relocalization_timeout_ns = static_cast<std::int64_t>(timeout_ms) * 1'000'000LL;
+    config.strong_maximum_fitness = declare_parameter<double>(
+      "monitor.strong_maximum_fitness", config.strong_maximum_fitness);
+    config.strong_minimum_overlap = declare_parameter<double>(
+      "monitor.strong_minimum_overlap", config.strong_minimum_overlap);
+    config.strong_minimum_correspondences = positiveCount(
+      "monitor.strong_minimum_correspondences", config.strong_minimum_correspondences);
+    return config;
+  }
+
   void inputCallback(
     const nav_msgs::msg::Odometry::ConstSharedPtr & odometry,
     const sensor_msgs::msg::PointCloud2::ConstSharedPtr & cloud)
@@ -341,6 +387,20 @@ private:
     const auto input = adapt(*odometry, *cloud, odom_frame_, tracking_frame_);
     if (!input.success) {
       publishStatus(nanoseconds(odometry->header.stamp), false, input.reason, 0U, {});
+      try {
+        const auto stamp_ns = nanoseconds(odometry->header.stamp);
+        const auto correction_available = latest_manager_correction_stamp_ns_.has_value();
+        const auto correction_age_ns = correction_available ?
+          std::max<std::int64_t>(0, stamp_ns - *latest_manager_correction_stamp_ns_) : 0;
+        const auto monitor_status = monitor_->update(MatchEvidence{
+          stamp_ns, false, false, correction_available, correction_age_ns,
+          EvidenceSource::kNormal, 0U, {}});
+        publishMonitorStatus(monitor_status);
+        tf_allowed_ = monitor_status.state == LocalizationState::kLocalized ||
+          monitor_status.state == LocalizationState::kDegraded;
+      } catch (const std::exception & error) {
+        RCLCPP_WARN(get_logger(), "Rejected monitor evidence: %s", error.what());
+      }
       return;
     }
     try {
@@ -350,7 +410,17 @@ private:
           output.stamp_ns, output.match_accepted, output.reason,
           output.candidate_id, output.registration);
       }
-      if (!output.valid) {
+      if (output.valid) {
+        latest_manager_correction_stamp_ns_ = output.correction_stamp_ns;
+      }
+      const auto monitor_status = monitor_->update(MatchEvidence{
+        output.stamp_ns, output.match_attempted, output.match_accepted, output.valid,
+        output.correction_age_ns, EvidenceSource::kNormal, output.candidate_id,
+        output.registration});
+      publishMonitorStatus(monitor_status);
+      tf_allowed_ = monitor_status.state == LocalizationState::kLocalized ||
+        monitor_status.state == LocalizationState::kDegraded;
+      if (!output.valid || !tf_allowed_) {
         return;
       }
       latest_correction_ = output.map_camera_init;
@@ -375,6 +445,27 @@ private:
     } catch (const std::exception & error) {
       RCLCPP_WARN(get_logger(), "Rejected Localization input: %s", error.what());
     }
+  }
+
+  void publishMonitorStatus(const LocalizationStatusSnapshot & status)
+  {
+    a2w_fastlio_msgs::msg::LocalizationStatus message;
+    message.stamp = stampMessage(status.stamp_ns);
+    message.state = static_cast<std::uint8_t>(status.state);
+    message.state_label = localizationStateName(status.state);
+    message.reason = status.reason;
+    message.consecutive_successes = static_cast<std::uint32_t>(status.consecutive_successes);
+    message.consecutive_failures = static_cast<std::uint32_t>(status.consecutive_failures);
+    message.relocalization_successes = static_cast<std::uint32_t>(
+      status.relocalization_successes);
+    message.correction_available = status.correction_available;
+    message.correction_age_ns = status.correction_age_ns;
+    message.candidate_id = status.candidate_id;
+    message.fitness = status.registration.fitness;
+    message.overlap = status.registration.overlap;
+    message.correspondence_count = status.registration.correspondence_count;
+    message.hardware_validation_pending = status.hardware_validation_pending;
+    monitor_status_publisher_->publish(message);
   }
 
   void publishStatus(
@@ -416,7 +507,7 @@ private:
     message.child_frame = odom_frame_;
     message.active = true;
     owner_publisher_->publish(message);
-    if (!latest_correction_ || !owner_state_->mayPublish(current.nanoseconds())) {
+    if (!tf_allowed_ || !latest_correction_ || !owner_state_->mayPublish(current.nanoseconds())) {
       return;
     }
     geometry_msgs::msg::TransformStamped transform;
@@ -438,8 +529,11 @@ private:
   std::shared_ptr<LocalMapSelector> selector_;
   std::shared_ptr<MapMatcher> matcher_;
   std::unique_ptr<LocalizationManager> manager_;
+  std::unique_ptr<LocalizationMonitor> monitor_;
   std::unique_ptr<a2w_fastlio_common::GlobalTfOwnerState> owner_state_;
   std::optional<a2w_fastlio_common::Pose3d> latest_correction_;
+  std::optional<std::int64_t> latest_manager_correction_stamp_ns_;
+  bool tf_allowed_{false};
   std::size_t max_path_poses_{10000U};
   nav_msgs::msg::Path path_;
   message_filters::Subscriber<nav_msgs::msg::Odometry> odometry_subscriber_;
@@ -449,6 +543,8 @@ private:
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odometry_publisher_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_publisher_;
   rclcpp::Publisher<a2w_fastlio_msgs::msg::RegistrationStatus>::SharedPtr status_publisher_;
+  rclcpp::Publisher<a2w_fastlio_msgs::msg::LocalizationStatus>::SharedPtr
+    monitor_status_publisher_;
   rclcpp::Publisher<a2w_fastlio_msgs::msg::GlobalTfOwner>::SharedPtr owner_publisher_;
   rclcpp::Subscription<a2w_fastlio_msgs::msg::GlobalTfOwner>::SharedPtr owner_subscription_;
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
