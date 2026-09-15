@@ -100,7 +100,7 @@ bool active
 - [x] **Step 1: Write RED static launch tests** asserting exactly one global owner and no Localization backend in Mapping mode.
 - [x] **Step 2: Add the launch/config implementation** and mark all runtime facts as hardware pending.
 - [x] **Step 3: Run full workspace build/tests, `--show-args`, path hygiene, and protected diffs.**
-- [ ] **Step 4: Commit and push**:
+- [x] **Step 4: Commit and push**:
 
 ```bash
 git add src/a2w_fastlio_msgs src/a2w_fastlio_mapping src/a2w_fastlio2_bringup scripts tests README.md
