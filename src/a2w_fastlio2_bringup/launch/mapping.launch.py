@@ -14,6 +14,7 @@ from launch_ros.parameter_descriptions import ParameterValue
 def generate_launch_description():
     bringup_share = get_package_share_directory("a2w_fastlio2_bringup")
     mapping_share = get_package_share_directory("a2w_fastlio_mapping")
+    map_share = get_package_share_directory("a2w_fastlio_map")
 
     jt128_config = LaunchConfiguration("jt128_config")
     keyframe_config = LaunchConfiguration("keyframe_config")
@@ -22,6 +23,8 @@ def generate_launch_description():
     scan_context_config = LaunchConfiguration("scan_context_config")
     registration_config = LaunchConfiguration("registration_config")
     loop_validation_config = LaunchConfiguration("loop_validation_config")
+    map_config = LaunchConfiguration("map_config")
+    bundle_root = LaunchConfiguration("bundle_root")
     rviz = LaunchConfiguration("rviz")
     use_sim_time = LaunchConfiguration("use_sim_time")
 
@@ -53,6 +56,15 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "loop_validation_config",
             default_value=os.path.join(mapping_share, "config", "loop_validation.yaml"),
+        ),
+        DeclareLaunchArgument(
+            "map_config",
+            default_value=os.path.join(map_share, "config", "map.yaml"),
+        ),
+        DeclareLaunchArgument(
+            "bundle_root",
+            default_value="maps",
+            description="Writable Map Bundle root; launcher scripts resolve this from the repository",
         ),
         DeclareLaunchArgument("rviz", default_value="true"),
         DeclareLaunchArgument("use_sim_time", default_value="false"),
@@ -88,6 +100,8 @@ def generate_launch_description():
             scan_context_config,
             registration_config,
             loop_validation_config,
+            map_config,
+            {"bundle_root": ParameterValue(bundle_root, value_type=str)},
             {"use_sim_time": ParameterValue(use_sim_time, value_type=bool)},
         ],
         output="screen",

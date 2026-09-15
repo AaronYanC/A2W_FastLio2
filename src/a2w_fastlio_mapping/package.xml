@@ -8,6 +8,7 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>a2w_fastlio_common</depend>
+  <depend>a2w_fastlio_map</depend>
   <depend>a2w_fastlio_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>gtsam</depend>

@@ -1,0 +1,7 @@
+string output_path
+---
+bool success
+string message
+string bundle_uuid
+uint64 keyframe_count
+string resolved_path

@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>a2w_fastlio_map</name>
+  <version>0.1.0</version>
+  <description>Versioned map storage and Map Bundle I/O for A2W FAST-LIO.</description>
+  <maintainer email="AaronYanC@users.noreply.github.com">AaronYanC</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>a2w_fastlio_common</depend>
+  <depend>openssl</depend>
+  <depend>pcl</depend>
+  <depend>yaml-cpp</depend>
+  <test_depend>ament_cmake_gtest</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

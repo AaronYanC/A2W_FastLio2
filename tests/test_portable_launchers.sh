@@ -5,6 +5,7 @@ repository_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
 pc_launcher="$repository_root/scripts/run_fastlio_jt128_pc.sh"
 mapping_launcher="$repository_root/scripts/run_fastlio_jt128_mapping.sh"
 stage1_launcher="$repository_root/scripts/run_fastlio_jt128_stage1.sh"
+backend_mapping_launcher="$repository_root/scripts/run_a2w_mapping.sh"
 
 fail() {
     printf 'FAIL: %s\n' "$1" >&2
@@ -20,6 +21,7 @@ fake_ros2="$temp_dir/ros2"
 pc_capture="$temp_dir/pc_capture"
 mapping_capture="$temp_dir/mapping_capture"
 stage1_capture="$temp_dir/stage1_capture"
+backend_mapping_capture="$temp_dir/backend_mapping_capture"
 runtime_dir="$temp_dir/runtime"
 map_file="$repository_root/maps/jt128_map.pcd"
 
@@ -151,6 +153,18 @@ grep -Fx 'rviz:=false' "$mapping_capture" >/dev/null || \
 grep -Fx \
     'ARGS=launch a2w_fastlio2_bringup mapping_stage1.launch.py save_frontend_pcd:=false rviz:=false ' \
     "$stage1_capture" >/dev/null || fail "Stage 1 launcher command is not portable bringup"
+
+(
+    cd /tmp
+    A2W_TEST_CAPTURE="$backend_mapping_capture" \
+    A2W_PC_LAUNCHER="$temp_dir/fake_pc_launcher" \
+        "$backend_mapping_launcher" rviz:=false
+)
+
+grep -Fx "bundle_root:=$repository_root/maps" "$backend_mapping_capture" >/dev/null || \
+    fail "backend Mapping launcher did not resolve the repository Map Bundle root"
+grep -Fx 'rviz:=false' "$backend_mapping_capture" >/dev/null || \
+    fail "backend Mapping launcher did not forward launch arguments"
 
 tool_capture="$temp_dir/tool_capture"
 fake_git="$temp_dir/git"

@@ -1,0 +1,11 @@
+/**:
+  ros__parameters:
+    bundle_root: "maps"
+    save_map_bundle_service: "/mapping/save_map_bundle"
+    save_queue_capacity: 1
+    frontend_revision: "16e97cdcc4260b9ba6241518a19ad8384224ba48"
+    scan_context_revision: "curated-snapshot"
+    quatro_revision: "d27109b"
+    nano_gicp_revision: "b21e79e"
+    teaser_revision: "974574c"
+    pmc_revision: "a2dfd61"

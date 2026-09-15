@@ -173,6 +173,27 @@ class PackageDependencyTests(unittest.TestCase):
             }
         )
         self.assertIn("gtsam", packages["a2w_fastlio_mapping"])
+        self.assertEqual(graph["a2w_fastlio_map"], {"a2w_fastlio_common"})
+        self.assertTrue(
+            {"a2w_fastlio_common", "a2w_fastlio_map", "a2w_fastlio_msgs"}
+            <= graph["a2w_fastlio_mapping"]
+        )
+
+
+class MapBundleContractTests(unittest.TestCase):
+    def test_map_profile_marks_hardware_validation_pending(self):
+        config_path = REPOSITORY_ROOT / "src" / "a2w_fastlio_map" / "config" / "map.yaml"
+        with config_path.open("r", encoding="utf-8") as stream:
+            parameters = yaml.safe_load(stream)["/**"]["ros__parameters"]
+        self.assertEqual(parameters["save_map_bundle_service"], "/mapping/save_map_bundle")
+        self.assertEqual(parameters["save_queue_capacity"], 1)
+        self.assertNotIn("hardware_validated", parameters)
+
+    def test_full_map_is_only_a_bundle_file_not_a_mapping_topic(self):
+        mapping_sources = REPOSITORY_ROOT / "src" / "a2w_fastlio_mapping"
+        forbidden = 'create_publisher<sensor_msgs::msg::PointCloud2>("/mapping/optimized_map"'
+        for source in mapping_sources.rglob("*.cpp"):
+            self.assertNotIn(forbidden, source.read_text(encoding="utf-8"))
 
 
 class MappingOutputContractTests(unittest.TestCase):

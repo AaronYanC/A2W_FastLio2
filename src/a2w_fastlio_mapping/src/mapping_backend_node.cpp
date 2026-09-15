@@ -1,18 +1,23 @@
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <ctime>
 #include <functional>
+#include <iomanip>
 #include <limits>
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <stdexcept>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include <a2w_fastlio_msgs/msg/global_tf_owner.hpp>
 #include <a2w_fastlio_msgs/msg/registration_status.hpp>
+#include <a2w_fastlio_msgs/srv/save_map_bundle.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <message_filters/subscriber.h>
@@ -30,6 +35,7 @@
 #include "a2w_fastlio_mapping/global_tf_ownership.hpp"
 #include "a2w_fastlio_mapping/map_odom_manager.hpp"
 #include "a2w_fastlio_mapping/loop_pipeline.hpp"
+#include "a2w_fastlio_mapping/map_bundle_service.hpp"
 #include "a2w_fastlio_mapping/optimized_map_builder.hpp"
 #include "a2w_fastlio_mapping/pose_graph_optimizer.hpp"
 
@@ -59,6 +65,33 @@ geometry_msgs::msg::Pose toPoseMessage(const a2w_fastlio_common::Pose3d & pose)
   message.orientation.y = pose.rotation.y();
   message.orientation.z = pose.rotation.z();
   return message;
+}
+
+std::string generatedUuid()
+{
+  static std::atomic<std::uint64_t> sequence{0U};
+  const auto now = static_cast<std::uint64_t>(
+    std::chrono::system_clock::now().time_since_epoch().count());
+  const auto tail = now ^ (++sequence * 0x9e3779b97f4a7c15ULL);
+  std::ostringstream stream;
+  stream << std::hex << std::setfill('0')
+         << std::setw(8) << static_cast<std::uint32_t>(now >> 32U) << '-'
+         << std::setw(4) << static_cast<std::uint16_t>(now >> 16U) << '-'
+         << std::setw(4) << static_cast<std::uint16_t>((now & 0x0fffU) | 0x4000U) << '-'
+         << std::setw(4) << static_cast<std::uint16_t>((tail >> 48U & 0x3fffU) | 0x8000U) << '-'
+         << std::setw(12) << (tail & 0xffffffffffffULL);
+  return stream.str();
+}
+
+std::string utcNow()
+{
+  const auto now = std::chrono::system_clock::now();
+  const auto time = std::chrono::system_clock::to_time_t(now);
+  std::tm utc{};
+  gmtime_r(&time, &utc);
+  std::ostringstream stream;
+  stream << std::put_time(&utc, "%Y-%m-%dT%H:%M:%SZ");
+  return stream.str();
 }
 
 class VectorKeyFrameProvider final : public a2w_fastlio_common::KeyFrameProvider
@@ -109,6 +142,7 @@ public:
     owner_state_ = std::make_unique<GlobalTfOwnerState>(ownerConfig());
     const auto algorithms =
       a2w_fastlio_common::createDefaultAlgorithmSuite(algorithmSuiteConfig());
+    place_recognition_ = algorithms.place_recognition;
     const auto local_map_config = localMapConfig();
     loop_pipeline_ = std::make_unique<LoopPipeline>(
       algorithms.place_recognition, algorithms.descriptor_index, algorithms.registration,
@@ -183,6 +217,27 @@ public:
     worker_timer_ = create_wall_timer(
       std::chrono::milliseconds{worker_period_ms},
       std::bind(&MappingBackendNode::processOneKeyframe, this), worker_callback_group_);
+
+    const auto bundle_root = declare_parameter<std::string>("bundle_root", "maps");
+    const auto save_queue_capacity = declare_parameter<int>("save_queue_capacity", 1);
+    if (bundle_root.empty() || save_queue_capacity <= 0) {
+      throw std::invalid_argument{"invalid Map Bundle save configuration"};
+    }
+    frontend_revision_ = declare_parameter<std::string>(
+      "frontend_revision", "16e97cdcc4260b9ba6241518a19ad8384224ba48");
+    scan_context_revision_ = declare_parameter<std::string>("scan_context_revision", "curated");
+    quatro_revision_ = declare_parameter<std::string>("quatro_revision", "d27109b");
+    nano_gicp_revision_ = declare_parameter<std::string>("nano_gicp_revision", "b21e79e");
+    teaser_revision_ = declare_parameter<std::string>("teaser_revision", "974574c");
+    pmc_revision_ = declare_parameter<std::string>("pmc_revision", "a2dfd61");
+    bundle_service_ = std::make_unique<MapBundleService>(
+      bundle_root, static_cast<std::size_t>(save_queue_capacity));
+    save_callback_group_ = create_callback_group(rclcpp::CallbackGroupType::Reentrant);
+    save_service_ = create_service<a2w_fastlio_msgs::srv::SaveMapBundle>(
+      declare_parameter<std::string>("save_map_bundle_service", "/mapping/save_map_bundle"),
+      std::bind(&MappingBackendNode::saveMapBundle, this,
+      std::placeholders::_1, std::placeholders::_2),
+      rmw_qos_profile_services_default, save_callback_group_);
   }
 
 private:
@@ -441,6 +496,7 @@ private:
 
   void processOneKeyframe()
   {
+    std::lock_guard<std::mutex> backend_lock{backend_state_mutex_};
     const auto events = loop_pipeline_->processNext();
     if (!events || events->empty()) {
       return;
@@ -468,6 +524,87 @@ private:
     publishProducts(snapshot, current->stamp_ns);
     publishStatus(
       optimized.id, current->stamp_ns, true, "pose_graph", "optimized_snapshot_updated");
+  }
+
+  std::string parameterSnapshot(const std::vector<std::string> & prefixes)
+  {
+    auto names = list_parameters({}, 10U).names;
+    std::sort(names.begin(), names.end());
+    std::ostringstream stream;
+    for (const auto & name : names) {
+      const bool included = prefixes.empty() || std::any_of(
+        prefixes.begin(), prefixes.end(), [&name](const auto & prefix) {
+          return name.rfind(prefix, 0U) == 0U;
+        });
+      if (included) {
+        stream << name << ": " << get_parameter(name).value_to_string() << '\n';
+      }
+    }
+    return stream.str();
+  }
+
+  a2w_fastlio_map::MapBundleData bundleSnapshot()
+  {
+    a2w_fastlio_map::MapBundleData data;
+    {
+      std::lock_guard<std::mutex> backend_lock{backend_state_mutex_};
+      const auto optimized = graph_->optimizedPoses();
+      if (optimized.poses.empty() || !latest_full_map_ || latest_full_map_->empty()) {
+        throw std::runtime_error{"no optimized Mapping snapshot is available"};
+      }
+      data.keyframes.reserve(optimized.poses.size());
+      for (const auto & pose : optimized.poses) {
+        auto keyframe = provider_.get(pose.id);
+        if (!keyframe) {
+          throw std::runtime_error{"Mapping snapshot has a missing keyframe"};
+        }
+        keyframe->optimized_pose = pose.pose;
+        data.keyframes.push_back(std::move(*keyframe));
+      }
+      data.global_map = a2w_fastlio_common::CloudPtr{
+        new a2w_fastlio_common::Cloud{*latest_full_map_}};
+    }
+    data.descriptors.reserve(data.keyframes.size());
+    for (const auto & keyframe : data.keyframes) {
+      data.descriptors.push_back({
+        keyframe.id, place_recognition_->describe(keyframe.body_cloud)});
+    }
+    data.metadata.bundle_uuid = generatedUuid();
+    data.metadata.created_utc = utcNow();
+    data.metadata.map_frame = map_frame_;
+    data.metadata.odom_frame = odom_frame_;
+    data.metadata.tracking_frame = tracking_frame_;
+    data.metadata.global_map_leaf_m = get_parameter("full_map_voxel_leaf_m").as_double();
+    data.metadata.frontend_revision = frontend_revision_;
+    data.metadata.dependency_revisions = {
+      {"scan_context", scan_context_revision_}, {"quatro", quatro_revision_},
+      {"nano_gicp", nano_gicp_revision_}, {"teaser++", teaser_revision_},
+      {"pmc", pmc_revision_}, {"gtsam", "4.1.1"}};
+    data.config_snapshots = {
+      {"mapping_effective.yaml", parameterSnapshot({})},
+      {"scan_context.yaml", parameterSnapshot({"scan_context."})},
+      {"registration.yaml", parameterSnapshot(
+          {"local_map.", "quatro.", "nano_gicp.", "pipeline.", "loop_validation."})},
+    };
+    return data;
+  }
+
+  void saveMapBundle(
+    const std::shared_ptr<a2w_fastlio_msgs::srv::SaveMapBundle::Request> request,
+    std::shared_ptr<a2w_fastlio_msgs::srv::SaveMapBundle::Response> response)
+  {
+    try {
+      auto data = bundleSnapshot();
+      const auto result = bundle_service_->save(request->output_path, std::move(data));
+      response->success = result.success;
+      response->message = result.message;
+      response->bundle_uuid = result.bundle_uuid;
+      response->keyframe_count = result.keyframe_count;
+      response->resolved_path = result.resolved_path.string();
+    } catch (const std::exception & error) {
+      response->success = false;
+      response->message = error.what();
+    }
   }
 
   void publishProducts(const OptimizedPoseSnapshot & snapshot, const std::int64_t stamp_ns)
@@ -575,12 +712,21 @@ private:
   std::unique_ptr<OptimizedMapBuilder> map_builder_;
   std::unique_ptr<GlobalTfOwnerState> owner_state_;
   std::unique_ptr<LoopPipeline> loop_pipeline_;
+  std::shared_ptr<a2w_fastlio_common::PlaceRecognition> place_recognition_;
+  std::unique_ptr<MapBundleService> bundle_service_;
   MapOdomManager correction_manager_;
   VectorKeyFrameProvider provider_;
   a2w_fastlio_common::CloudPtr latest_full_map_;
   std::atomic<std::size_t> keyframe_count_{0U};
   std::optional<std::int64_t> last_stamp_ns_;
   bool fault_published_{false};
+  std::string frontend_revision_;
+  std::string scan_context_revision_;
+  std::string quatro_revision_;
+  std::string nano_gicp_revision_;
+  std::string teaser_revision_;
+  std::string pmc_revision_;
+  std::mutex backend_state_mutex_;
 
   message_filters::Subscriber<nav_msgs::msg::Odometry> odometry_subscriber_;
   message_filters::Subscriber<sensor_msgs::msg::PointCloud2> cloud_subscriber_;
@@ -596,6 +742,8 @@ private:
   rclcpp::TimerBase::SharedPtr owner_timer_;
   rclcpp::CallbackGroup::SharedPtr worker_callback_group_;
   rclcpp::TimerBase::SharedPtr worker_timer_;
+  rclcpp::CallbackGroup::SharedPtr save_callback_group_;
+  rclcpp::Service<a2w_fastlio_msgs::srv::SaveMapBundle>::SharedPtr save_service_;
 };
 
 }  // namespace a2w_fastlio_mapping

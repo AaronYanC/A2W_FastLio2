@@ -7,6 +7,7 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(a2w_fastlio_common REQUIRED)
+find_package(a2w_fastlio_map REQUIRED)
 find_package(a2w_fastlio_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(GTSAM 4.1 REQUIRED)
@@ -68,14 +69,21 @@ target_include_directories(global_tf_ownership PUBLIC
   $<INSTALL_INTERFACE:include>
 )
 
+add_library(map_bundle_service src/map_bundle_service.cpp)
+target_include_directories(map_bundle_service PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+ament_target_dependencies(map_bundle_service a2w_fastlio_map)
+
 add_executable(mapping_ingress_node src/mapping_ingress_node.cpp)
 target_link_libraries(mapping_ingress_node keyframe_manager frontend_message_adapter)
 ament_target_dependencies(mapping_ingress_node message_filters nav_msgs rclcpp sensor_msgs)
 
 add_executable(mapping_backend_node src/mapping_backend_node.cpp)
 target_link_libraries(mapping_backend_node
-  frontend_message_adapter global_tf_ownership loop_pipeline map_odom_manager optimized_map_builder
-  pose_graph_optimizer)
+  frontend_message_adapter global_tf_ownership loop_pipeline map_bundle_service map_odom_manager
+  optimized_map_builder pose_graph_optimizer)
 ament_target_dependencies(mapping_backend_node
   a2w_fastlio_msgs geometry_msgs message_filters nav_msgs pcl_conversions rclcpp sensor_msgs tf2_ros)
 
@@ -84,6 +92,7 @@ install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
 install(TARGETS
   keyframe_manager frontend_message_adapter pose_graph_optimizer loop_pipeline map_odom_manager
   optimized_map_builder global_tf_ownership
+  map_bundle_service
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
@@ -91,7 +100,7 @@ install(TARGETS
 )
 install(TARGETS mapping_ingress_node mapping_backend_node DESTINATION lib/${PROJECT_NAME})
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
-ament_export_dependencies(a2w_fastlio_common a2w_fastlio_msgs GTSAM)
+ament_export_dependencies(a2w_fastlio_common a2w_fastlio_map a2w_fastlio_msgs GTSAM)
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
@@ -119,6 +128,9 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_global_tf_ownership test/test_global_tf_ownership.cpp)
   target_link_libraries(test_global_tf_ownership global_tf_ownership)
+
+  ament_add_gtest(test_map_bundle_service test/test_map_bundle_service.cpp)
+  target_link_libraries(test_map_bundle_service map_bundle_service)
 
   add_launch_test(test/test_mapping_ingress_launch.py
     TIMEOUT 30

@@ -208,6 +208,35 @@ Topic 频率、真实 frame/timestamp、实时性能及整机 TF 树尚未实机
 Offline implementation and verification complete; JT128 hardware validation pending.
 ```
 
+## Stage 6：统一 Map Bundle V1（离线实现）
+
+推荐用项目根目录解析 launcher 启动完整 Mapping：
+
+```bash
+./scripts/run_a2w_mapping.sh
+```
+
+建图过程中或停止前，请通过后端快照保存统一地图包（`output_path` 必须位于配置的
+`bundle_root` 内）：
+
+```bash
+ros2 service call /mapping/save_map_bundle \
+  a2w_fastlio_msgs/srv/SaveMapBundle "{output_path: factory_map}"
+```
+
+输出目录默认为 `maps/factory_map/`，其中包含 `metadata.yaml`、SHA-256 manifest、
+关键帧 PCD、优化位姿、Scan Context 描述子、配置快照和完整 `global_map.pcd`。写入过程
+使用同文件系统 sibling staging、生产 Reader 自验证、旧目录备份 rename 和失败回滚；
+Localization 后续只读加载相同格式。检查现有地图包：
+
+```bash
+ros2 run a2w_fastlio_map map_bundle_inspect maps/factory_map
+```
+
+Map Bundle 的 `creation_status` 为 `offline_verified`，
+`hardware_validation_status` 为 `pending`；这只说明格式与离线数据链通过验证，不表示地图
+来自 JT128 实机。
+
 ## 建图并保存 PCD
 
 ```bash

@@ -1,18 +1,24 @@
 import struct
+import tempfile
 import time
 import unittest
+from pathlib import Path as FilePath
 
 import launch
 import launch_ros.actions
 import launch_testing.asserts
 import launch_testing.actions
 from a2w_fastlio_msgs.msg import RegistrationStatus
+from a2w_fastlio_msgs.srv import SaveMapBundle
 from nav_msgs.msg import Odometry, Path
 import rclpy
 from rclpy.duration import Duration
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import PointCloud2, PointField
 from tf2_msgs.msg import TFMessage
+
+
+BUNDLE_ROOT = tempfile.mkdtemp(prefix="a2w-mapping-bundle-")
 
 
 def backend(name, prefix, owner_topic, parent="map", child="camera_init"):
@@ -37,6 +43,7 @@ def backend(name, prefix, owner_topic, parent="map", child="camera_init"):
             "owner_heartbeat_ms": 50,
             "preview_voxel_leaf_m": 0.01,
             "preview_max_points": 2,
+            "bundle_root": BUNDLE_ROOT,
         }],
     )
 
@@ -166,6 +173,34 @@ class TestMappingOutputs(unittest.TestCase):
         self.assertEqual(preview_info[0].qos_profile.reliability, ReliabilityPolicy.RELIABLE)
         self.assertEqual(preview_info[0].qos_profile.durability, DurabilityPolicy.TRANSIENT_LOCAL)
         self.assertEqual(preview_info[0].qos_profile.depth, 1)
+
+    def test_save_map_bundle_service_uses_backend_snapshot(self):
+        stamp_ns = 12_000_000_000
+        deadline = time.monotonic() + 6.0
+        while time.monotonic() < deadline and not self.odoms:
+            self.odom_pub.publish(make_odom(stamp_ns, 3.0))
+            self.cloud_pub.publish(make_cloud(stamp_ns))
+            rclpy.spin_once(self.node, timeout_sec=0.05)
+        self.assertTrue(self.odoms)
+        client = self.node.create_client(SaveMapBundle, "/mapping/save_map_bundle")
+        self.assertTrue(client.wait_for_service(timeout_sec=5.0))
+
+        invalid = client.call_async(SaveMapBundle.Request(output_path="../escape"))
+        self.assertTrue(self.spin_until(lambda: invalid.done()))
+        self.assertFalse(invalid.result().success)
+        self.assertEqual(invalid.result().message, "output_path_not_confined")
+
+        request = SaveMapBundle.Request(output_path="offline_test_map")
+        future = client.call_async(request)
+        self.assertTrue(self.spin_until(lambda: future.done(), timeout=10.0))
+        response = future.result()
+        self.assertTrue(response.success, response.message)
+        self.assertGreaterEqual(response.keyframe_count, 1)
+        self.assertTrue(response.bundle_uuid)
+        self.assertEqual(
+            FilePath(response.resolved_path), FilePath(BUNDLE_ROOT) / "offline_test_map")
+        self.assertTrue((FilePath(response.resolved_path) / "global_map.pcd").is_file())
+        self.assertTrue((FilePath(response.resolved_path) / "manifest.sha256").is_file())
 
     def test_conflicting_owners_never_reach_global_tf_publication(self):
         publishers = {}

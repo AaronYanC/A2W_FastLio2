@@ -11,14 +11,16 @@ save_argument_name=${A2W_SAVE_ARGUMENT_NAME:-save_map}
 launch_arguments=("$@")
 save_map_argument_found=false
 
-for argument in "${launch_arguments[@]}"; do
-    if [[ $argument == "$save_argument_name":=* ]]; then
-        save_map_argument_found=true
-        break
+if [[ -n $save_argument_name ]]; then
+    for argument in "${launch_arguments[@]}"; do
+        if [[ $argument == "$save_argument_name":=* ]]; then
+            save_map_argument_found=true
+            break
+        fi
+    done
+    if [[ $save_map_argument_found == false ]]; then
+        launch_arguments=("$save_argument_name:=false" "${launch_arguments[@]}")
     fi
-done
-if [[ $save_map_argument_found == false ]]; then
-    launch_arguments=("$save_argument_name:=false" "${launch_arguments[@]}")
 fi
 
 a2w_source_ros_environment "$repository_root"
