@@ -440,7 +440,7 @@ git diff --check main...HEAD
 
 Expected: clean status; existing FAST_LIO/ikd-tree commits unchanged; no whitespace errors.
 
-- [ ] **Step 4: Record offline limitation and push**
+- [x] **Step 4: Record offline limitation and push**
 
 Report that message-level and launch integration tests passed, while real JT128 rate/QoS/frame
 validation remains pending until the PC reconnects to the robot. Push the Stage 1 commits to
