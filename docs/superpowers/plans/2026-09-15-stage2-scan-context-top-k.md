@@ -135,7 +135,7 @@ git diff --check
 git diff main...HEAD -- src/FAST_LIO_Hesai src/a2w_fastlio2_bringup/config/jt128.yaml maps
 ```
 
-- [ ] **Step 5: Commit and push**:
+- [x] **Step 5: Commit and push**:
 
 ```bash
 git add third_party src/a2w_fastlio_common src/a2w_fastlio_mapping/config/scan_context.yaml tests README.md
