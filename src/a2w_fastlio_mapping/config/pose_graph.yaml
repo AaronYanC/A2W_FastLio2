@@ -1,0 +1,21 @@
+/**:
+  ros__parameters:
+    # Offline defaults only. Noise values require JT128 dataset/hardware tuning.
+    pose_graph:
+      prior_rotation_sigma_rad: 0.001
+      prior_translation_sigma_m: 0.001
+      odometry_rotation_sigma_rad: 0.05
+      odometry_translation_sigma_m: 0.1
+      loop_rotation_sigma_rad: 0.05
+      loop_translation_sigma_m: 0.1
+      robust_kernel: "huber"
+      robust_kernel_scale: 1.0
+      relinearization_threshold: 0.1
+      relinearization_skip: 1
+    loop_pipeline:
+      top_k: 5
+      exclude_recent: 30
+      local_map_before: 5
+      local_map_after: 5
+      minimum_keyframes_between_accepted_loops: 10
+      queue_capacity: 32

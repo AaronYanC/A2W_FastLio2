@@ -104,6 +104,33 @@ class RegistrationConfigurationTests(unittest.TestCase):
         self.assertLessEqual(parameters["minimum_overlap"], 1.0)
         self.assertGreater(parameters["minimum_correspondences"], 0)
 
+    def test_pose_graph_profile_covers_graph_and_loop_coordinator(self):
+        parameters = self.parameters("pose_graph.yaml")
+        self.assertEqual(set(parameters), {"pose_graph", "loop_pipeline"})
+        self.assertEqual(
+            set(parameters["pose_graph"]),
+            {
+                "prior_rotation_sigma_rad", "prior_translation_sigma_m",
+                "odometry_rotation_sigma_rad", "odometry_translation_sigma_m",
+                "loop_rotation_sigma_rad", "loop_translation_sigma_m",
+                "robust_kernel", "robust_kernel_scale",
+                "relinearization_threshold", "relinearization_skip",
+            },
+        )
+        self.assertIn(parameters["pose_graph"]["robust_kernel"], {"huber", "cauchy"})
+        for name, value in parameters["pose_graph"].items():
+            if name != "robust_kernel":
+                self.assertGreater(value, 0, name)
+        self.assertEqual(
+            set(parameters["loop_pipeline"]),
+            {
+                "top_k", "exclude_recent", "local_map_before", "local_map_after",
+                "minimum_keyframes_between_accepted_loops", "queue_capacity",
+            },
+        )
+        self.assertGreater(parameters["loop_pipeline"]["top_k"], 1)
+        self.assertGreater(parameters["loop_pipeline"]["queue_capacity"], 0)
+
 
 class PackageDependencyTests(unittest.TestCase):
     def test_internal_package_graph_is_acyclic(self):
@@ -147,6 +174,7 @@ class PackageDependencyTests(unittest.TestCase):
                 "a2w_fastlio_localization",
             }
         )
+        self.assertIn("gtsam", packages["a2w_fastlio_mapping"])
 
 
 class AlgorithmBoundaryTests(unittest.TestCase):

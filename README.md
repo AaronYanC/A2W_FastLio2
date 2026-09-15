@@ -151,6 +151,24 @@ src/a2w_fastlio_mapping/config/loop_validation.yaml
 Offline implementation and verification complete; JT128 hardware validation pending.
 ```
 
+## Stage 4：GTSAM/iSAM2 位姿图（离线实现）
+
+`a2w_fastlio_mapping` 使用系统 GTSAM 4.1.1，增量加入首帧 Prior、相邻关键帧
+Odometry factor 和已通过 Stage 3 验证的 Loop factor。闭环噪声支持 Huber/Cauchy robust
+kernel；未验证、越界、同 ID 或非有限约束在改变图状态前被拒绝。
+
+坐标约定统一为 `map_T_body`：节点值表示 body 在 map 中的位姿，Between factor 的测量
+表示 `from_T_to`。GTSAM Pose3 对角噪声顺序为旋转 x/y/z（弧度），再平移 x/y/z（米）。
+图优化只更新后端关键帧位姿，不向 FAST-LIO 的 ESIKF 或 ikd-tree 回写。
+
+`LoopPipeline` 负责 Top-K 候选、临时 Local Map、共享粗到细配准、每窗口最多一个闭环和
+有界输入队列。默认参数位于 `a2w_fastlio_mapping/config/pose_graph.yaml`，均为离线初值。
+Stage 5 前不发布 `map→camera_init`、optimized path 或地图预览。
+
+```text
+Offline implementation and verification complete; JT128 hardware validation pending.
+```
+
 ## 建图并保存 PCD
 
 ```bash

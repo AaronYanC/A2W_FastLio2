@@ -29,9 +29,9 @@
 - Consumes: contiguous keyframe IDs, odometry `Pose3d`, and accepted `LoopConstraint`.
 - Produces: immutable `OptimizedPoseSnapshot` values.
 
-- [ ] **Step 1: Write RED tests** for lossless `Pose3d <-> gtsam::Pose3`, first-node prior, adjacent odometry factors, contiguous IDs, and non-finite pose rejection.
-- [ ] **Step 2: Run RED** with `colcon test --packages-select a2w_fastlio_mapping`; expect missing optimizer.
-- [ ] **Step 3: Implement the transactional API**:
+- [x] **Step 1: Write RED tests** for lossless `Pose3d <-> gtsam::Pose3`, first-node prior, adjacent odometry factors, contiguous IDs, and non-finite pose rejection.
+- [x] **Step 2: Run RED** with `colcon test --packages-select a2w_fastlio_mapping`; expect missing optimizer.
+- [x] **Step 3: Implement the transactional API**:
 
 ```cpp
 GraphUpdate addKeyFrame(std::uint64_t id, const Pose3d & odom_pose);
@@ -39,7 +39,7 @@ GraphUpdate addLoopConstraint(const LoopConstraint & constraint);
 GraphUpdate update();
 OptimizedPoseSnapshot optimizedPoses() const;
 ```
-- [ ] **Step 4: Run GREEN** against system GTSAM 4.1.1.
+- [x] **Step 4: Run GREEN** against system GTSAM 4.1.1.
 
 ### Task 2: Synthetic loop closure and robust noise
 
@@ -50,10 +50,10 @@ OptimizedPoseSnapshot optimizedPoses() const;
 **Interfaces:**
 - Extends: `PoseGraphConfig` with prior/odom/loop sigmas, robust kernel, and iSAM2 settings.
 
-- [ ] **Step 1: Write a RED square-loop test** whose drifting odometry leaves a measurable endpoint error; after a correct loop factor, assert lower endpoint and total trajectory error. Add a bad loop test whose robust loss limits displacement.
-- [ ] **Step 2: Run RED**; expect absent loop behavior or unchanged error.
-- [ ] **Step 3: Add iSAM2 updates**, configurable diagonal prior/odom/loop sigmas, relinearization threshold/skip, and Huber/Cauchy robust loop noise.
-- [ ] **Step 4: Run GREEN** repeatedly to confirm deterministic snapshots.
+- [x] **Step 1: Write a RED square-loop test** whose drifting odometry leaves a measurable endpoint error; after a correct loop factor, assert lower endpoint and total trajectory error. Add a bad loop test whose robust loss limits displacement.
+- [x] **Step 2: Run RED**; expect absent loop behavior or unchanged error.
+- [x] **Step 3: Add iSAM2 updates**, configurable diagonal prior/odom/loop sigmas, relinearization threshold/skip, and Huber/Cauchy robust loop noise.
+- [x] **Step 4: Run GREEN** repeatedly to confirm deterministic snapshots.
 
 ### Task 3: Mapping loop coordinator
 
@@ -67,16 +67,16 @@ OptimizedPoseSnapshot optimizedPoses() const;
   `PoseGraphOptimizer`.
 - Produces: `LoopPipelineEvent` audit records and accepted graph constraints.
 
-- [ ] **Step 1: Write RED tests** with fake abstract place/coarse/fine algorithms proving Top-K iteration, validator gating, one accepted loop per policy window, and no graph mutation for rejected candidates.
-- [ ] **Step 2: Run RED**; expect missing coordinator.
-- [ ] **Step 3: Implement the coordinator** using dependency injection and bounded work items. It emits candidate/registration/loop events but contains no ROS publisher.
+- [x] **Step 1: Write RED tests** with fake abstract place/coarse/fine algorithms proving Top-K iteration, validator gating, one accepted loop per policy window, and no graph mutation for rejected candidates.
+- [x] **Step 2: Run RED**; expect missing coordinator.
+- [x] **Step 3: Implement the coordinator** using dependency injection and bounded work items. It emits candidate/registration/loop events but contains no ROS publisher.
 
 ```cpp
 std::vector<LoopPipelineEvent> process(const KeyFrame & current);
 bool enqueue(KeyFrame keyframe);
 std::size_t pending() const noexcept;
 ```
-- [ ] **Step 4: Run GREEN** and ThreadSanitizer-compatible queue tests where available.
+- [x] **Step 4: Run GREEN** and ThreadSanitizer-compatible queue tests where available.
 
 ### Task 4: Stage 4 configuration and checkpoint
 
@@ -87,9 +87,9 @@ std::size_t pending() const noexcept;
 **Interfaces:**
 - Produces: installed Mapping graph library and `pose_graph.yaml` consumed by Stage 5.
 
-- [ ] **Step 1: Add RED tests** for invalid noise values and missing GTSAM dependency declaration.
-- [ ] **Step 2: Add every graph parameter and document coordinate conventions.**
-- [ ] **Step 3: Run full workspace verification and protected-path diff checks.**
+- [x] **Step 1: Add RED tests** for invalid noise values and missing GTSAM dependency declaration.
+- [x] **Step 2: Add every graph parameter and document coordinate conventions.**
+- [x] **Step 3: Run full workspace verification and protected-path diff checks.**
 - [ ] **Step 4: Commit and push**:
 
 ```bash
