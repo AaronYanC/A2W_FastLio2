@@ -147,6 +147,10 @@ src/a2w_fastlio_mapping/config/loop_validation.yaml
 这些数值只通过合成数据测试，并非 A2W/JT128 实机调参结果。Stage 3 算法层尚未改变
 现有 FAST-LIO 前端，也尚未发布回环、优化 TF 或优化地图。
 
+```text
+Offline implementation and verification complete; JT128 hardware validation pending.
+```
+
 ## 建图并保存 PCD
 
 ```bash

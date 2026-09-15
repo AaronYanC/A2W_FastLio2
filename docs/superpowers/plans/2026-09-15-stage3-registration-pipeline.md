@@ -135,7 +135,7 @@ ValidationResult validate(
 - [x] **Step 1: Add RED contract tests** for abstract-only upper-layer includes and complete YAML coverage.
 - [x] **Step 2: Add validated offline defaults** and dependency installation/build instructions without describing them as JT128 tuned.
 - [x] **Step 3: Run the full verification commands from Stage 2 Task 4.**
-- [ ] **Step 4: Commit and push**:
+- [x] **Step 4: Commit and push**:
 
 ```bash
 git add .gitmodules third_party src/a2w_fastlio_common src/a2w_fastlio_mapping/config scripts tests README.md
