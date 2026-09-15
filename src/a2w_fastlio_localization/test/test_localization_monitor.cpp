@@ -126,6 +126,26 @@ TEST(LocalizationMonitor, StrongRelocalizationCanRecoverOnceAndTimeoutReturnsLos
   EXPECT_EQ(monitor.latest().reason, "relocalization_timeout");
 }
 
+TEST(LocalizationMonitor, ExternalConsistencyPolicyGatesRecovery)
+{
+  auto configured = config();
+  configured.initialization_successes_required = 1U;
+  configured.lost_failures_required = 1U;
+  configured.degraded_failures_required = 1U;
+  LocalizationMonitor monitor{configured};
+  monitor.update(evidence(10, true));
+  monitor.update(evidence(20, false));
+  monitor.beginRelocalization(30);
+  auto pending = evidence(40, true, EvidenceSource::kRelocalization);
+  pending.defer_confirmation = true;
+  EXPECT_EQ(monitor.update(pending).state, LocalizationState::kRelocalizing);
+  pending.stamp_ns = 50;
+  EXPECT_EQ(monitor.update(pending).state, LocalizationState::kRelocalizing);
+  pending.stamp_ns = 60;
+  pending.confirmation_complete = true;
+  EXPECT_EQ(monitor.update(pending).state, LocalizationState::kLocalized);
+}
+
 TEST(LocalizationMonitor, RejectsInvalidConfigurationAndNonMonotonicEvidence)
 {
   auto invalid = config();

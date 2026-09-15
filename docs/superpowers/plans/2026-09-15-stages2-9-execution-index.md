@@ -15,8 +15,8 @@ earlier Stages:
 - [x] Stage 5: `2026-09-15-stage5-mapping-outputs.md`
 - [x] Stage 6: `2026-09-15-stage6-map-bundle.md`
 - [x] Stage 7: `2026-09-15-stage7-localization.md`
-- [ ] Stage 8: `2026-09-15-stage8-localization-monitor.md`
-- [ ] Stage 9: `2026-09-15-stage9-global-relocalization.md`
+- [x] Stage 8: `2026-09-15-stage8-localization-monitor.md`
+- [x] Stage 9: `2026-09-15-stage9-global-relocalization.md`
 
 Every checked Stage requires its own commit to be present on
 `origin/feature/slam-localization-backend`, a clean worktree, full build/test evidence, and an empty

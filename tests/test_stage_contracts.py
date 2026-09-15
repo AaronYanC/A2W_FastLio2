@@ -301,6 +301,37 @@ class LocalizationContractTests(unittest.TestCase):
         self.assertGreaterEqual(monitor["strong_minimum_overlap"], 0.0)
         self.assertLessEqual(monitor["strong_minimum_overlap"], 1.0)
 
+    def test_global_relocalization_profile_requires_top_k_geometry_and_consistency(self):
+        config_path = (
+            REPOSITORY_ROOT / "src" / "a2w_fastlio_localization" / "config" /
+            "relocalization.yaml"
+        )
+        with config_path.open("r", encoding="utf-8") as stream:
+            parameters = yaml.safe_load(stream)["/**"]["ros__parameters"]
+        self.assertEqual(
+            set(parameters["scan_context"]),
+            {"rings", "sectors", "max_radius_m", "sensor_height_m"},
+        )
+        global_config = parameters["global_relocalization"]
+        self.assertEqual(
+            set(global_config),
+            {
+                "enabled", "top_k", "neighbor_keyframes_before",
+                "neighbor_keyframes_after", "maximum_descriptor_distance",
+                "minimum_score_margin", "descriptor_score_weight",
+                "fitness_score_weight", "overlap_score_weight",
+                "strong_maximum_fitness", "strong_minimum_overlap",
+                "strong_minimum_correspondences", "confirmation_count",
+                "maximum_translation_difference_m",
+                "maximum_rotation_difference_rad", "worker_queue_capacity",
+                "evaluation_time_budget_ms",
+            },
+        )
+        self.assertGreater(global_config["top_k"], 1)
+        self.assertGreater(global_config["minimum_score_margin"], 0.0)
+        self.assertGreater(global_config["confirmation_count"], 1)
+        self.assertGreater(global_config["worker_queue_capacity"], 0)
+
     def test_localization_topics_include_observable_health_status(self):
         config_path = (
             REPOSITORY_ROOT / "src" / "a2w_fastlio_localization" / "config" /

@@ -299,6 +299,12 @@ INITIALIZING -> LOCALIZED -> DEGRADED -> LOST -> RELOCALIZING -> LOCALIZED
 All transitions use explicit counters, timeouts, and hysteresis. A failed relocalization attempt
 remains observable and does not publish a newly valid global correction.
 
+Global evaluation runs on one bounded background worker. Queue capacity and an evaluation time
+budget are parameters; starting a new session or shutting down invalidates queued and in-flight
+results. Every queried candidate produces an audit status, including descriptor-limit, missing-map,
+coarse/fine-registration, validation, and ambiguity rejection reasons. Only a confirmed session
+atomically replaces the `LocalizationManager` correction and re-enables global outputs.
+
 The Stage 8 transition contract is:
 
 | Current state | Evidence or command | Next state | Global-output rule |

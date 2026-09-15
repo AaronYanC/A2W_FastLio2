@@ -112,8 +112,10 @@ LocalizationStatusSnapshot LocalizationMonitor::update(const MatchEvidence & evi
       return snapshot_;
     }
     ++snapshot_.relocalization_successes;
-    if (isStrongRelocalization(evidence) ||
-      snapshot_.relocalization_successes >= config_.relocalization_successes_required)
+    if (evidence.confirmation_complete ||
+      (!evidence.defer_confirmation &&
+      (isStrongRelocalization(evidence) ||
+      snapshot_.relocalization_successes >= config_.relocalization_successes_required)))
     {
       snapshot_.consecutive_successes = 0U;
       snapshot_.consecutive_failures = 0U;
@@ -168,7 +170,9 @@ LocalizationStatusSnapshot LocalizationMonitor::update(const MatchEvidence & evi
 LocalizationStatusSnapshot LocalizationMonitor::beginRelocalization(const std::int64_t stamp_ns)
 {
   std::lock_guard<std::mutex> lock{mutex_};
-  requireMonotonic(stamp_ns);
+  if (stamp_ns < 0 || (last_stamp_ns_ && stamp_ns < *last_stamp_ns_)) {
+    throw std::invalid_argument{"relocalization command timestamp moved backwards"};
+  }
   recordTimestamp(stamp_ns);
   if (snapshot_.state != LocalizationState::kLost) {
     throw std::logic_error{"relocalization may only begin from LOST"};

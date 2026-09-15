@@ -42,6 +42,8 @@ class LocalizationManager
 public:
   LocalizationManager(LocalizationManagerConfig config, MatchFunction matcher);
   LocalizationOutput process(const a2w_fastlio_common::FrontendFrame & frame);
+  void restoreCorrection(
+    std::int64_t stamp_ns, const a2w_fastlio_common::Pose3d & map_camera_init);
   std::optional<LocalizationOutput> latest() const;
 
 private:

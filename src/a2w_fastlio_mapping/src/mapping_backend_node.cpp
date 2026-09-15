@@ -654,6 +654,7 @@ private:
     status.fitness = registration.fitness;
     status.overlap = registration.overlap;
     status.correspondence_count = registration.correspondence_count;
+    status.elapsed_ms = registration.elapsed_ms;
     registration_status_publisher_->publish(status);
   }
 

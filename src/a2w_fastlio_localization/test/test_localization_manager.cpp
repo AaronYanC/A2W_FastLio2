@@ -79,5 +79,24 @@ TEST(LocalizationManager, RejectsJumpAndNonMonotonicFrames)
   EXPECT_THROW(manager.process(frame(11, 0.0)), std::invalid_argument);
 }
 
+TEST(LocalizationManager, GlobalRelocalizationCanAtomicallyRestoreCorrection)
+{
+  LocalizationManager manager{LocalizationManagerConfig{}, [](const auto &, const auto &) {
+      return MapMatchResult{};
+    }};
+  a2w_fastlio_common::Pose3d correction;
+  correction.translation.x() = 42.0;
+  manager.restoreCorrection(5, correction);
+  auto input = frame(10, 0.0);
+
+  const auto output = manager.process(input);
+
+  ASSERT_TRUE(output.valid);
+  EXPECT_DOUBLE_EQ(output.map_camera_init.translation.x(), 42.0);
+  EXPECT_DOUBLE_EQ(output.map_body.translation.x(), 42.0);
+  EXPECT_EQ(output.correction_stamp_ns, 5);
+  EXPECT_THROW(manager.restoreCorrection(5, correction), std::invalid_argument);
+}
+
 }  // namespace
 }  // namespace a2w_fastlio_localization

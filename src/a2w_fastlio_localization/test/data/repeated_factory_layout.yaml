@@ -1,0 +1,9 @@
+description: Synthetic repeated factory aisles used by Stage 9 tests; not JT128 data.
+query_region: aisle_b
+candidates:
+  - {id: 0, region: aisle_a, scan_context_rank: 0, geometry: false_match}
+  - {id: 1, region: aisle_b, scan_context_rank: 2, geometry: true_match}
+policy:
+  never_accept_scan_context_top1: true
+  require_geometric_validation: true
+  require_ambiguity_margin_or_multiframe_consistency: true

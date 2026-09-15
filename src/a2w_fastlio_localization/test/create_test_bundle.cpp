@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <iostream>
 
+#include "a2w_fastlio_common/default_algorithm_suite.hpp"
 #include "a2w_fastlio_map/map_bundle_writer.hpp"
 
 int main(int argc, char ** argv)
@@ -34,8 +35,8 @@ int main(int argc, char ** argv)
     }
   }
   data.keyframes.push_back(frame);
-  data.descriptors.push_back({
-    0U, a2w_fastlio_common::ScanDescriptor{2U, 2U, {0.0F, 1.0F, 2.0F, 3.0F}}});
+  const auto algorithms = a2w_fastlio_common::createDefaultAlgorithmSuite({});
+  data.descriptors.push_back({0U, algorithms.place_recognition->describe(frame.body_cloud)});
   data.config_snapshots = {
     {"mapping_effective.yaml", "fixture: stage7\n"},
     {"scan_context.yaml", "rings: 2\n"},

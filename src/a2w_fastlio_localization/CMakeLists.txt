@@ -18,10 +18,12 @@ find_package(sensor_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 
 add_library(${PROJECT_NAME}
+  src/global_relocalizer.cpp
   src/local_map_selector.cpp
   src/map_matcher.cpp
   src/localization_manager.cpp
   src/localization_monitor.cpp
+  src/relocalization_worker.cpp
 )
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -53,6 +55,12 @@ if(BUILD_TESTING)
   target_link_libraries(test_localization_manager ${PROJECT_NAME})
   ament_add_gtest(test_localization_monitor test/test_localization_monitor.cpp)
   target_link_libraries(test_localization_monitor ${PROJECT_NAME})
+  ament_add_gtest(test_global_relocalizer test/test_global_relocalizer.cpp)
+  target_link_libraries(test_global_relocalizer ${PROJECT_NAME})
+  ament_add_gtest(test_relocalization_sequences test/test_relocalization_sequences.cpp)
+  target_link_libraries(test_relocalization_sequences ${PROJECT_NAME})
+  ament_add_gtest(test_relocalization_worker test/test_relocalization_worker.cpp)
+  target_link_libraries(test_relocalization_worker ${PROJECT_NAME})
 
   add_executable(create_test_bundle test/create_test_bundle.cpp)
   target_link_libraries(create_test_bundle a2w_fastlio_map::a2w_fastlio_map)
@@ -61,6 +69,13 @@ if(BUILD_TESTING)
     TIMEOUT 45
     ENV
       "RMW_IMPLEMENTATION=rmw_cyclonedds_cpp"
+      "ROS_LOG_DIR=${CMAKE_CURRENT_BINARY_DIR}/ros_logs"
+  )
+  add_launch_test(test/test_global_relocalization_launch.py
+    TIMEOUT 60
+    ENV
+      "RMW_IMPLEMENTATION=rmw_cyclonedds_cpp"
+      "ROS_DOMAIN_ID=149"
       "ROS_LOG_DIR=${CMAKE_CURRENT_BINARY_DIR}/ros_logs"
   )
 endif()

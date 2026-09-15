@@ -61,6 +61,7 @@ def generate_test_description():
             "match_interval_ms": 10000,
             "monitor.initialization_successes_required": 1,
             "monitor.correction_stale_after_ms": 50,
+            "global_relocalization.enabled": False,
             "local_map.selection_radius_m": 20.0,
             "local_map.minimum_neighbors": 1,
             "local_map.voxel_leaf_m": 0.0,

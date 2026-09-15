@@ -1,6 +1,11 @@
 /**:
   ros__parameters:
     # Offline-safe state-machine defaults. Tune only during final JT128 validation.
+    scan_context:
+      rings: 20
+      sectors: 60
+      max_radius_m: 80.0
+      sensor_height_m: 2.0
     monitor:
       initialization_successes_required: 2
       degraded_failures_required: 2
@@ -12,3 +17,21 @@
       strong_maximum_fitness: 0.08
       strong_minimum_overlap: 0.70
       strong_minimum_correspondences: 100
+    global_relocalization:
+      enabled: true
+      top_k: 5
+      neighbor_keyframes_before: 2
+      neighbor_keyframes_after: 2
+      maximum_descriptor_distance: 0.50
+      minimum_score_margin: 0.05
+      descriptor_score_weight: 0.10
+      fitness_score_weight: 1.0
+      overlap_score_weight: 1.0
+      strong_maximum_fitness: 0.08
+      strong_minimum_overlap: 0.70
+      strong_minimum_correspondences: 100
+      confirmation_count: 3
+      maximum_translation_difference_m: 1.0
+      maximum_rotation_difference_rad: 0.25
+      worker_queue_capacity: 1
+      evaluation_time_budget_ms: 5000

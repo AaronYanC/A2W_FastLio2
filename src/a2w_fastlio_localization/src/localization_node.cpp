@@ -1,9 +1,12 @@
 #include <algorithm>
+#include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <limits>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -25,9 +28,13 @@
 #include "a2w_fastlio_common/default_algorithm_suite.hpp"
 #include "a2w_fastlio_common/global_tf_ownership.hpp"
 #include "a2w_fastlio_localization/local_map_selector.hpp"
+#include "a2w_fastlio_localization/global_relocalizer.hpp"
 #include "a2w_fastlio_localization/localization_manager.hpp"
 #include "a2w_fastlio_localization/localization_monitor.hpp"
 #include "a2w_fastlio_localization/map_matcher.hpp"
+#include "a2w_fastlio_localization/relocalization_worker.hpp"
+#include "a2w_fastlio_map/descriptor_database.hpp"
+#include "a2w_fastlio_map/keyframe_database.hpp"
 #include "a2w_fastlio_map/map_bundle_reader.hpp"
 
 namespace a2w_fastlio_localization
@@ -55,6 +62,23 @@ geometry_msgs::msg::Pose poseMessage(const a2w_fastlio_common::Pose3d & pose)
   result.orientation.x = pose.rotation.x();
   result.orientation.y = pose.rotation.y();
   result.orientation.z = pose.rotation.z();
+  return result;
+}
+
+a2w_fastlio_common::Pose3d compose(
+  const a2w_fastlio_common::Pose3d & lhs, const a2w_fastlio_common::Pose3d & rhs)
+{
+  a2w_fastlio_common::Pose3d result;
+  result.rotation = (lhs.rotation.normalized() * rhs.rotation.normalized()).normalized();
+  result.translation = lhs.rotation.normalized() * rhs.translation + lhs.translation;
+  return result;
+}
+
+a2w_fastlio_common::Pose3d inverse(const a2w_fastlio_common::Pose3d & pose)
+{
+  a2w_fastlio_common::Pose3d result;
+  result.rotation = pose.rotation.normalized().conjugate();
+  result.translation = -(result.rotation * pose.translation);
   return result;
 }
 
@@ -136,14 +160,49 @@ public:
     snapshot.descriptors = bundle_.data.descriptors;
     snapshot.global_map = bundle_.data.global_map;
     const auto algorithms = a2w_fastlio_common::createDefaultAlgorithmSuite(algorithmConfig());
+    const auto local_map_config = localMapConfig();
     selector_ = std::make_shared<LocalMapSelector>(snapshot, selectorConfig());
-    matcher_ = std::make_shared<MapMatcher>(snapshot, algorithms.registration, localMapConfig());
+    matcher_ = std::make_shared<MapMatcher>(snapshot, algorithms.registration, local_map_config);
     manager_ = std::make_unique<LocalizationManager>(managerConfig(),
       [this](const auto & frame, const auto & predicted) {
         const auto selection = selector_->select(predicted);
         return matcher_->match(frame, selection);
       });
-    monitor_ = std::make_unique<LocalizationMonitor>(monitorConfig());
+    const auto monitor_config = monitorConfig();
+    monitor_ = std::make_unique<LocalizationMonitor>(monitor_config);
+    global_relocalization_enabled_ = declare_parameter<bool>(
+      "global_relocalization.enabled", true);
+    if (global_relocalization_enabled_) {
+      relocalization_keyframes_ = std::make_shared<a2w_fastlio_map::KeyFrameDatabase>();
+      relocalization_descriptors_ = std::make_shared<a2w_fastlio_map::DescriptorDatabase>();
+      for (const auto & keyframe : bundle_.data.keyframes) {
+        if (!relocalization_keyframes_->add(keyframe)) {
+          throw std::runtime_error{"Map Bundle has invalid relocalization keyframes"};
+        }
+      }
+      for (const auto & descriptor : bundle_.data.descriptors) {
+        relocalization_descriptors_->add(descriptor.keyframe_id, descriptor.descriptor);
+      }
+      place_recognition_ = algorithms.place_recognition;
+      relocalization_config_ = globalRelocalizationConfig();
+      relocalizer_ = std::make_shared<GlobalRelocalizer>(
+        relocalization_descriptors_, relocalization_keyframes_, algorithms.registration,
+        local_map_config);
+      relocalization_session_ = std::make_unique<RelocalizationSession>(
+        sessionConfig(monitor_config.relocalization_timeout_ns));
+      const auto queue_capacity = declare_parameter<int>(
+        "global_relocalization.worker_queue_capacity", 1);
+      const auto time_budget_ms = declare_parameter<int>(
+        "global_relocalization.evaluation_time_budget_ms", 5000);
+      if (queue_capacity <= 0 || time_budget_ms <= 0) {
+        throw std::invalid_argument{"global relocalization worker settings must be positive"};
+      }
+      relocalization_time_budget_ms_ = static_cast<double>(time_budget_ms);
+      relocalization_worker_ = std::make_unique<RelocalizationWorker>(
+        [this](const auto & frame) {return evaluateRelocalization(frame);},
+        [this](const auto & result) {handleRelocalizationResult(result);},
+        static_cast<std::size_t>(queue_capacity));
+    }
 
     const auto input_qos = qos("input", 20, false);
     const auto output_qos = qos("output", 20, false);
@@ -204,6 +263,11 @@ public:
     RCLCPP_INFO(get_logger(), "Loaded read-only Map Bundle %s", bundle_.root.c_str());
   }
 
+  ~LocalizationNode() override
+  {
+    relocalization_worker_.reset();
+  }
+
 private:
   using Synchronizer = message_filters::TimeSynchronizer<
     nav_msgs::msg::Odometry, sensor_msgs::msg::PointCloud2>;
@@ -229,6 +293,19 @@ private:
   a2w_fastlio_common::DefaultAlgorithmSuiteConfig algorithmConfig()
   {
     a2w_fastlio_common::DefaultAlgorithmSuiteConfig config;
+    const auto rings = declare_parameter<int>(
+      "scan_context.rings", static_cast<int>(config.place_recognition.rings));
+    const auto sectors = declare_parameter<int>(
+      "scan_context.sectors", static_cast<int>(config.place_recognition.sectors));
+    config.place_recognition.max_radius_m = declare_parameter<double>(
+      "scan_context.max_radius_m", config.place_recognition.max_radius_m);
+    config.place_recognition.sensor_height_m = declare_parameter<double>(
+      "scan_context.sensor_height_m", config.place_recognition.sensor_height_m);
+    if (rings <= 0 || sectors <= 0) {
+      throw std::invalid_argument{"scan-context dimensions must be positive"};
+    }
+    config.place_recognition.rings = static_cast<std::size_t>(rings);
+    config.place_recognition.sectors = static_cast<std::size_t>(sectors);
     config.coarse.normal_radius_m = declare_parameter<double>(
       "quatro.fpfh_normal_radius_m", config.coarse.normal_radius_m);
     config.coarse.feature_radius_m = declare_parameter<double>(
@@ -380,6 +457,158 @@ private:
     return config;
   }
 
+  RelocalizationConfig globalRelocalizationConfig()
+  {
+    RelocalizationConfig config;
+    const auto top_k = declare_parameter<int>(
+      "global_relocalization.top_k", static_cast<int>(config.top_k));
+    const auto before = declare_parameter<int>(
+      "global_relocalization.neighbor_keyframes_before",
+      static_cast<int>(config.neighbor_keyframes_before));
+    const auto after = declare_parameter<int>(
+      "global_relocalization.neighbor_keyframes_after",
+      static_cast<int>(config.neighbor_keyframes_after));
+    const auto strong_count = declare_parameter<int>(
+      "global_relocalization.strong_minimum_correspondences",
+      static_cast<int>(config.strong_minimum_correspondences));
+    if (top_k < 2 || before < 0 || after < 0 || strong_count <= 0) {
+      throw std::invalid_argument{"invalid global relocalization count settings"};
+    }
+    config.top_k = static_cast<std::size_t>(top_k);
+    config.neighbor_keyframes_before = static_cast<std::size_t>(before);
+    config.neighbor_keyframes_after = static_cast<std::size_t>(after);
+    config.strong_minimum_correspondences = static_cast<std::size_t>(strong_count);
+    config.maximum_descriptor_distance = declare_parameter<double>(
+      "global_relocalization.maximum_descriptor_distance",
+      config.maximum_descriptor_distance);
+    config.minimum_score_margin = declare_parameter<double>(
+      "global_relocalization.minimum_score_margin", config.minimum_score_margin);
+    config.descriptor_score_weight = declare_parameter<double>(
+      "global_relocalization.descriptor_score_weight", config.descriptor_score_weight);
+    config.fitness_score_weight = declare_parameter<double>(
+      "global_relocalization.fitness_score_weight", config.fitness_score_weight);
+    config.overlap_score_weight = declare_parameter<double>(
+      "global_relocalization.overlap_score_weight", config.overlap_score_weight);
+    config.strong_maximum_fitness = declare_parameter<double>(
+      "global_relocalization.strong_maximum_fitness", config.strong_maximum_fitness);
+    config.strong_minimum_overlap = declare_parameter<double>(
+      "global_relocalization.strong_minimum_overlap", config.strong_minimum_overlap);
+    const auto finite_nonnegative = [](const double value) {
+        return std::isfinite(value) && value >= 0.0;
+      };
+    if (!finite_nonnegative(config.maximum_descriptor_distance) ||
+      !finite_nonnegative(config.minimum_score_margin) ||
+      !finite_nonnegative(config.descriptor_score_weight) ||
+      !finite_nonnegative(config.fitness_score_weight) ||
+      !finite_nonnegative(config.overlap_score_weight) ||
+      config.fitness_score_weight + config.overlap_score_weight <= 0.0 ||
+      !finite_nonnegative(config.strong_maximum_fitness) ||
+      !std::isfinite(config.strong_minimum_overlap) ||
+      config.strong_minimum_overlap < 0.0 || config.strong_minimum_overlap > 1.0)
+    {
+      throw std::invalid_argument{"invalid global relocalization quality settings"};
+    }
+    return config;
+  }
+
+  RelocalizationSessionConfig sessionConfig(const std::int64_t timeout_ns)
+  {
+    RelocalizationSessionConfig config;
+    const auto confirmations = declare_parameter<int>(
+      "global_relocalization.confirmation_count", static_cast<int>(config.confirmation_count));
+    if (confirmations < 2) {
+      throw std::invalid_argument{"global relocalization confirmation_count must be at least two"};
+    }
+    config.confirmation_count = static_cast<std::size_t>(confirmations);
+    config.maximum_translation_difference_m = declare_parameter<double>(
+      "global_relocalization.maximum_translation_difference_m",
+      config.maximum_translation_difference_m);
+    config.maximum_rotation_difference_rad = declare_parameter<double>(
+      "global_relocalization.maximum_rotation_difference_rad",
+      config.maximum_rotation_difference_rad);
+    config.timeout_ns = timeout_ns;
+    return config;
+  }
+
+  RelocalizationResult evaluateRelocalization(
+    const a2w_fastlio_common::FrontendFrame & frame) const
+  {
+    const auto started = std::chrono::steady_clock::now();
+    auto result = relocalizer_->evaluate(
+      frame.body_cloud, place_recognition_->describe(frame.body_cloud), relocalization_config_);
+    const auto elapsed_ms = std::chrono::duration<double, std::milli>(
+      std::chrono::steady_clock::now() - started).count();
+    if (elapsed_ms > relocalization_time_budget_ms_) {
+      result.success = false;
+      result.strong = false;
+      result.reason = "evaluation_time_budget_exceeded";
+    }
+    return result;
+  }
+
+  void publishCandidateAudits(const RelocalizationWorkResult & work)
+  {
+    for (const auto & audit : work.result.audits) {
+      publishStatus(
+        work.frame.stamp_ns, audit.accepted, audit.reason,
+        audit.candidate.keyframe_id, audit.registration, "global_relocalization");
+    }
+    if (work.result.audits.empty()) {
+      publishStatus(
+        work.frame.stamp_ns, false, work.result.reason, 0U, {}, "global_relocalization");
+    }
+  }
+
+  void handleRelocalizationResult(const RelocalizationWorkResult & work)
+  {
+    if (monitor_->latest().state != LocalizationState::kRelocalizing) {
+      return;
+    }
+    publishCandidateAudits(work);
+    auto session_result = work.result;
+    if (session_result.success) {
+      session_result.map_body = compose(work.result.map_body, inverse(work.frame.odom_pose));
+    }
+    try {
+      const auto session = relocalization_session_->observe(work.frame.stamp_ns, session_result);
+      const bool confirmed = session.confirmed_correction.has_value();
+      if (confirmed) {
+        manager_->restoreCorrection(work.frame.stamp_ns, *session.confirmed_correction);
+        std::lock_guard<std::mutex> lock{correction_mutex_};
+        latest_correction_ = *session.confirmed_correction;
+        latest_manager_correction_stamp_ns_ = work.frame.stamp_ns;
+      }
+      const auto monitor_status = monitor_->update(MatchEvidence{
+        work.frame.stamp_ns, true, work.result.success, confirmed, 0,
+        EvidenceSource::kRelocalization, work.result.candidate_id,
+        work.result.registration, true, confirmed});
+      publishMonitorStatus(monitor_status);
+      tf_allowed_.store(monitor_status.state == LocalizationState::kLocalized ||
+        monitor_status.state == LocalizationState::kDegraded);
+      if (!confirmed || monitor_status.state != LocalizationState::kLocalized) {
+        return;
+      }
+      relocalization_worker_->cancelPending();
+      RCLCPP_INFO(
+        get_logger(), "Global relocalization restored candidate %lu",
+        static_cast<unsigned long>(work.result.candidate_id));
+    } catch (const std::exception & error) {
+      RCLCPP_WARN(get_logger(), "Rejected relocalization result: %s", error.what());
+    }
+  }
+
+  void beginGlobalRelocalization(const std::int64_t stamp_ns)
+  {
+    if (!global_relocalization_enabled_ || !relocalization_worker_ ||
+      monitor_->latest().state != LocalizationState::kLost)
+    {
+      return;
+    }
+    relocalization_worker_->cancelPending();
+    relocalization_session_->start(stamp_ns);
+    publishMonitorStatus(monitor_->beginRelocalization(stamp_ns));
+  }
+
   void inputCallback(
     const nav_msgs::msg::Odometry::ConstSharedPtr & odometry,
     const sensor_msgs::msg::PointCloud2::ConstSharedPtr & cloud)
@@ -389,17 +618,35 @@ private:
       publishStatus(nanoseconds(odometry->header.stamp), false, input.reason, 0U, {});
       try {
         const auto stamp_ns = nanoseconds(odometry->header.stamp);
-        const auto correction_available = latest_manager_correction_stamp_ns_.has_value();
+        std::optional<std::int64_t> correction_stamp;
+        {
+          std::lock_guard<std::mutex> lock{correction_mutex_};
+          correction_stamp = latest_manager_correction_stamp_ns_;
+        }
+        const auto correction_available = correction_stamp.has_value();
         const auto correction_age_ns = correction_available ?
-          std::max<std::int64_t>(0, stamp_ns - *latest_manager_correction_stamp_ns_) : 0;
+          std::max<std::int64_t>(0, stamp_ns - *correction_stamp) : 0;
         const auto monitor_status = monitor_->update(MatchEvidence{
           stamp_ns, false, false, correction_available, correction_age_ns,
           EvidenceSource::kNormal, 0U, {}});
         publishMonitorStatus(monitor_status);
-        tf_allowed_ = monitor_status.state == LocalizationState::kLocalized ||
-          monitor_status.state == LocalizationState::kDegraded;
+        tf_allowed_.store(monitor_status.state == LocalizationState::kLocalized ||
+          monitor_status.state == LocalizationState::kDegraded);
       } catch (const std::exception & error) {
         RCLCPP_WARN(get_logger(), "Rejected monitor evidence: %s", error.what());
+      }
+      return;
+    }
+    const auto current_state = monitor_->latest().state;
+    if (current_state == LocalizationState::kLost && global_relocalization_enabled_) {
+      beginGlobalRelocalization(input.frame.stamp_ns);
+      return;
+    }
+    if (current_state == LocalizationState::kRelocalizing) {
+      if (!relocalization_worker_->enqueue(input.frame)) {
+        publishStatus(
+          input.frame.stamp_ns, false, "relocalization_queue_full", 0U, {},
+          "global_relocalization");
       }
       return;
     }
@@ -411,6 +658,7 @@ private:
           output.candidate_id, output.registration);
       }
       if (output.valid) {
+        std::lock_guard<std::mutex> lock{correction_mutex_};
         latest_manager_correction_stamp_ns_ = output.correction_stamp_ns;
       }
       const auto monitor_status = monitor_->update(MatchEvidence{
@@ -418,12 +666,18 @@ private:
         output.correction_age_ns, EvidenceSource::kNormal, output.candidate_id,
         output.registration});
       publishMonitorStatus(monitor_status);
-      tf_allowed_ = monitor_status.state == LocalizationState::kLocalized ||
-        monitor_status.state == LocalizationState::kDegraded;
-      if (!output.valid || !tf_allowed_) {
+      tf_allowed_.store(monitor_status.state == LocalizationState::kLocalized ||
+        monitor_status.state == LocalizationState::kDegraded);
+      if (monitor_status.state == LocalizationState::kLost) {
+        beginGlobalRelocalization(output.stamp_ns);
+      }
+      if (!output.valid || !tf_allowed_.load()) {
         return;
       }
-      latest_correction_ = output.map_camera_init;
+      {
+        std::lock_guard<std::mutex> lock{correction_mutex_};
+        latest_correction_ = output.map_camera_init;
+      }
       const auto stamp = stampMessage(output.stamp_ns);
       geometry_msgs::msg::PoseStamped pose;
       pose.header.stamp = stamp;
@@ -471,18 +725,20 @@ private:
   void publishStatus(
     const std::int64_t stamp, const bool accepted, const std::string & reason,
     const std::uint64_t candidate_id,
-    const a2w_fastlio_common::RegistrationResult & registration)
+    const a2w_fastlio_common::RegistrationResult & registration,
+    const std::string & stage = "localization")
   {
     a2w_fastlio_msgs::msg::RegistrationStatus message;
     message.stamp = stampMessage(stamp);
     message.keyframe_id = 0U;
     message.candidate_id = candidate_id;
     message.accepted = accepted;
-    message.stage = "localization";
+    message.stage = stage;
     message.reason = reason;
     message.fitness = registration.fitness;
     message.overlap = registration.overlap;
     message.correspondence_count = registration.correspondence_count;
+    message.elapsed_ms = registration.elapsed_ms;
     status_publisher_->publish(message);
   }
 
@@ -507,20 +763,28 @@ private:
     message.child_frame = odom_frame_;
     message.active = true;
     owner_publisher_->publish(message);
-    if (!tf_allowed_ || !latest_correction_ || !owner_state_->mayPublish(current.nanoseconds())) {
+    if (!tf_allowed_.load() || !owner_state_->mayPublish(current.nanoseconds())) {
+      return;
+    }
+    std::optional<a2w_fastlio_common::Pose3d> correction;
+    {
+      std::lock_guard<std::mutex> lock{correction_mutex_};
+      correction = latest_correction_;
+    }
+    if (!correction) {
       return;
     }
     geometry_msgs::msg::TransformStamped transform;
     transform.header.stamp = message.stamp;
     transform.header.frame_id = map_frame_;
     transform.child_frame_id = odom_frame_;
-    transform.transform.translation.x = latest_correction_->translation.x();
-    transform.transform.translation.y = latest_correction_->translation.y();
-    transform.transform.translation.z = latest_correction_->translation.z();
-    transform.transform.rotation.w = latest_correction_->rotation.w();
-    transform.transform.rotation.x = latest_correction_->rotation.x();
-    transform.transform.rotation.y = latest_correction_->rotation.y();
-    transform.transform.rotation.z = latest_correction_->rotation.z();
+    transform.transform.translation.x = correction->translation.x();
+    transform.transform.translation.y = correction->translation.y();
+    transform.transform.translation.z = correction->translation.z();
+    transform.transform.rotation.w = correction->rotation.w();
+    transform.transform.rotation.x = correction->rotation.x();
+    transform.transform.rotation.y = correction->rotation.y();
+    transform.transform.rotation.z = correction->rotation.z();
     tf_broadcaster_->sendTransform(transform);
   }
 
@@ -528,12 +792,22 @@ private:
   a2w_fastlio_map::MapBundle bundle_;
   std::shared_ptr<LocalMapSelector> selector_;
   std::shared_ptr<MapMatcher> matcher_;
+  std::shared_ptr<a2w_fastlio_common::PlaceRecognition> place_recognition_;
+  std::shared_ptr<a2w_fastlio_map::KeyFrameDatabase> relocalization_keyframes_;
+  std::shared_ptr<a2w_fastlio_map::DescriptorDatabase> relocalization_descriptors_;
+  std::shared_ptr<GlobalRelocalizer> relocalizer_;
   std::unique_ptr<LocalizationManager> manager_;
   std::unique_ptr<LocalizationMonitor> monitor_;
+  std::unique_ptr<RelocalizationSession> relocalization_session_;
+  std::unique_ptr<RelocalizationWorker> relocalization_worker_;
   std::unique_ptr<a2w_fastlio_common::GlobalTfOwnerState> owner_state_;
+  RelocalizationConfig relocalization_config_;
+  double relocalization_time_budget_ms_{5000.0};
+  bool global_relocalization_enabled_{true};
+  mutable std::mutex correction_mutex_;
   std::optional<a2w_fastlio_common::Pose3d> latest_correction_;
   std::optional<std::int64_t> latest_manager_correction_stamp_ns_;
-  bool tf_allowed_{false};
+  std::atomic_bool tf_allowed_{false};
   std::size_t max_path_poses_{10000U};
   nav_msgs::msg::Path path_;
   message_filters::Subscriber<nav_msgs::msg::Odometry> odometry_subscriber_;

@@ -291,6 +291,41 @@ src/a2w_fastlio_localization/config/relocalization.yaml
 Offline implementation and verification complete; JT128 hardware validation pending.
 ```
 
+## Stage 9：全局重定位（离线实现）
+
+进入 `LOST` 后，Localization 自动开启有界后台重定位会话：当前 body 点云先生成 Scan
+Context 查询，全地图 Top-K 候选逐一构建临时 Local Map，再统一经过
+`Quatro → Nano-GICP → MatchValidator`。每个候选都会在
+`/localization/registration_status` 以 `stage=global_relocalization` 留下审计结果；Scan
+Context Top-1 不会直接建立位置。
+
+通过几何验证的候选还必须满足最佳/次佳质量差距，并通过单次强结果或同一候选、相近
+`map → camera_init` 修正的多帧确认。后台队列容量和单次评估预算有界，新会话与节点退出会
+取消待处理结果。拒绝和确认期间 Map Bundle 始终只读。
+
+最终实机验收集中在一个入口，但该脚本不会启动 Mapping/Localization，也不会修改机器人：
+
+```bash
+# 仅列出全部检查，不产生实机通过结论
+./scripts/run_jt128_full_validation.sh --dry-run --mode all
+
+# 连接机器人并启动对应模式后，另一个终端执行；示例
+./scripts/run_jt128_full_validation.sh \
+  --mode localization \
+  --duration 30 \
+  --map-bundle maps/factory_map \
+  --output-dir log/jt128_validation/factory_run
+```
+
+输出包含逐项原始证据、`validation_summary.yaml` 和 `validation_report.md`。缺少 JT128
+Topic、Map Bundle 或任何必要证据时脚本非零退出，并保持
+`hardware_validation_status: pending`。当前仅完成 fixture/dry-run 验证，尚未连接
+A2W/JT128 执行。
+
+```text
+Offline implementation and verification complete; JT128 hardware validation pending.
+```
+
 ## 建图并保存 PCD
 
 ```bash
@@ -376,9 +411,9 @@ A2W_DDS_PEER=192.168.123.164 \
 
 ## 算法与许可证边界
 
-FAST-LIO2 仍是唯一前端。当前分支已有离线 Scan Context 与粗到细配准算法层，
-但在后续 Stage 接入回环因子、GTSAM 和运行时输出前，不应将它描述为已完成全局
-优化的建图系统。
+FAST-LIO2 仍是唯一前端。当前 feature 分支已完成 Mapping、Map Bundle、Localization 与
+Global Relocalization 的离线实现和验证；所有 Topic/QoS/Frame/频率、实时性能和阈值仍需
+最后一次 A2W/JT128 集中实机验收，不能据离线结果宣称硬件已验证。
 
 雷达—IMU 外参目前沿用配置中的单位变换，仅适合作为当前链路基线。正式测量或导航
 前应使用厂商参数或标定结果确认，但该工作不由本仓库脚本自动执行。

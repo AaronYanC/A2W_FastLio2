@@ -100,6 +100,21 @@ LocalizationOutput LocalizationManager::process(const a2w_fastlio_common::Fronte
   return output;
 }
 
+void LocalizationManager::restoreCorrection(
+  const std::int64_t stamp_ns, const a2w_fastlio_common::Pose3d & map_camera_init)
+{
+  std::lock_guard<std::mutex> lock{mutex_};
+  if (stamp_ns < 0 || !a2w_fastlio_common::isFinitePose(map_camera_init) ||
+    (correction_stamp_ns_ && stamp_ns <= *correction_stamp_ns_) ||
+    (last_frame_ns_ && stamp_ns <= *last_frame_ns_))
+  {
+    throw std::invalid_argument{"invalid or non-monotonic restored correction"};
+  }
+  correction_ = map_camera_init;
+  correction_stamp_ns_ = stamp_ns;
+  last_attempt_ns_ = stamp_ns;
+}
+
 std::optional<LocalizationOutput> LocalizationManager::latest() const
 {
   std::lock_guard<std::mutex> lock{mutex_};

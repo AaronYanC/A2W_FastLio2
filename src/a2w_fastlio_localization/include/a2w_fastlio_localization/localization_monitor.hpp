@@ -38,6 +38,8 @@ struct MatchEvidence
   EvidenceSource source{EvidenceSource::kNormal};
   std::uint64_t candidate_id{0U};
   a2w_fastlio_common::RegistrationResult registration{};
+  bool defer_confirmation{false};
+  bool confirmation_complete{false};
 };
 
 struct LocalizationMonitorConfig

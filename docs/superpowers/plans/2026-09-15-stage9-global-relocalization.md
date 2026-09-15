@@ -30,9 +30,9 @@
 - Consumes: full-map `DescriptorIndex`, `KeyFrameProvider`, and abstract registration interfaces.
 - Produces: `RelocalizationResult` plus one `CandidateAudit` for every evaluated candidate.
 
-- [ ] **Step 1: Write RED tests** proving all Top-K candidates are evaluated until policy completion; SC rank alone cannot win; invalid candidate maps are skipped with reasons; best/second-best margin rejects ambiguity; strong evidence selects a transform.
-- [ ] **Step 2: Run RED**; expect missing relocalizer.
-- [ ] **Step 3: Implement candidate evaluation** using only `DescriptorIndex`, `LocalMapBuilder`, `CoarseRegistration`, `FineRegistration`, and `MatchValidator` interfaces. Return a ranked audit record for every candidate.
+- [x] **Step 1: Write RED tests** proving all Top-K candidates are evaluated until policy completion; SC rank alone cannot win; invalid candidate maps are skipped with reasons; best/second-best margin rejects ambiguity; strong evidence selects a transform.
+- [x] **Step 2: Run RED**; expect missing relocalizer.
+- [x] **Step 3: Implement candidate evaluation** using only `DescriptorIndex`, `LocalMapBuilder`, `CoarseRegistration`, `FineRegistration`, and `MatchValidator` interfaces. Return a ranked audit record for every candidate.
 
 ```cpp
 RelocalizationResult evaluate(
@@ -40,7 +40,7 @@ RelocalizationResult evaluate(
   const ScanDescriptor & query_descriptor,
   const RelocalizationConfig & config) const;
 ```
-- [ ] **Step 4: Run GREEN** with fake interfaces and deterministic ordering.
+- [x] **Step 4: Run GREEN** with fake interfaces and deterministic ordering.
 
 ### Task 2: Multi-frame recovery and repeated structures
 
@@ -53,10 +53,10 @@ RelocalizationResult evaluate(
 - Consumes: per-frame `RelocalizationResult`.
 - Produces: `RelocalizationSessionSnapshot` and an optional confirmed correction.
 
-- [ ] **Step 1: Write RED synthetic kidnapped-robot tests** with two geometrically similar candidate areas. Assert the false candidate has a good SC score but fails geometry/ambiguity, while consistent transforms across configured frames restore the true pose.
-- [ ] **Step 2: Add RED tests** for timeout, cancellation, changing candidate winner, one strong-result recovery, N-frame recovery, and transform consistency thresholds.
-- [ ] **Step 3: Implement a bounded session state** that retains only candidate audit summaries and accepted-transform evidence required by the confirmation policy.
-- [ ] **Step 4: Run GREEN** and confirm monitor transitions `LOST -> RELOCALIZING -> LOCALIZED` only after acceptance.
+- [x] **Step 1: Write RED synthetic kidnapped-robot tests** with two geometrically similar candidate areas. Assert the false candidate has a good SC score but fails geometry/ambiguity, while consistent transforms across configured frames restore the true pose.
+- [x] **Step 2: Add RED tests** for timeout, cancellation, changing candidate winner, one strong-result recovery, N-frame recovery, and transform consistency thresholds.
+- [x] **Step 3: Implement a bounded session state** that retains only candidate audit summaries and accepted-transform evidence required by the confirmation policy.
+- [x] **Step 4: Run GREEN** and confirm monitor transitions `LOST -> RELOCALIZING -> LOCALIZED` only after acceptance.
 
 ### Task 3: ROS integration and offline end-to-end test
 
@@ -67,9 +67,9 @@ RelocalizationResult evaluate(
 **Interfaces:**
 - Integrates: LOST/RELOCALIZING monitor states, candidate audit publication, and correction update.
 
-- [ ] **Step 1: Write RED launch test** loading a synthetic Bundle, inducing LOST, moving the input sequence to another map region, and asserting candidate audit statuses, no TF update during rejection, then a consistent restored `map -> camera_init`.
-- [ ] **Step 2: Implement worker scheduling** with bounded queue, cancellation on shutdown/new session, and parameterized Top-K/time budgets.
-- [ ] **Step 3: Run GREEN** under CycloneDDS and verify the Bundle remains byte-identical.
+- [x] **Step 1: Write RED launch test** loading a synthetic Bundle, inducing LOST, moving the input sequence to another map region, and asserting candidate audit statuses, no TF update during rejection, then a consistent restored `map -> camera_init`.
+- [x] **Step 2: Implement worker scheduling** with bounded queue, cancellation on shutdown/new session, and parameterized Top-K/time budgets.
+- [x] **Step 3: Run GREEN** under CycloneDDS and verify the Bundle remains byte-identical.
 
 ### Task 4: Consolidated JT128 hardware validation runner
 
@@ -83,18 +83,18 @@ RelocalizationResult evaluate(
 - Accepts: `--mode`, `--duration`, `--output-dir`, `--dry-run`, and threshold/config overrides.
 - Produces: raw evidence, `validation_summary.yaml`, and `validation_report.md`.
 
-- [ ] **Step 1: Write RED shell tests** with fake `ros2`, `ps`, and `/proc` fixtures. Assert checks cover Topic visibility/rate, endpoint QoS, frames, timestamp monotonicity/skew, odom/keyframe rates, SC candidates, Quatro/Nano results, loop factors, graph status, TF owner/continuity, Bundle verification, Localization states, Relocalization recovery, CPU, RAM, and latency.
-- [ ] **Step 2: Add RED absence behavior**: without required hardware Topics the script exits nonzero and writes `JT128 hardware validation pending`; it must never mark the run passed.
-- [ ] **Step 3: Implement a portable runner** resolving project paths from its own location, accepting output directory/duration/threshold overrides, preserving raw command evidence, and writing a timestamped YAML/Markdown summary.
-- [ ] **Step 4: Run GREEN** against fixtures only; record that real execution remains pending.
+- [x] **Step 1: Write RED shell tests** with fake `ros2`, `ps`, and `/proc` fixtures. Assert checks cover Topic visibility/rate, endpoint QoS, frames, timestamp monotonicity/skew, odom/keyframe rates, SC candidates, Quatro/Nano results, loop factors, graph status, TF owner/continuity, Bundle verification, Localization states, Relocalization recovery, CPU, RAM, and latency.
+- [x] **Step 2: Add RED absence behavior**: without required hardware Topics the script exits nonzero and writes `JT128 hardware validation pending`; it must never mark the run passed.
+- [x] **Step 3: Implement a portable runner** resolving project paths from its own location, accepting output directory/duration/threshold overrides, preserving raw command evidence, and writing a timestamped YAML/Markdown summary.
+- [x] **Step 4: Run GREEN** against fixtures only; record that real execution remains pending.
 
 ### Task 5: Final offline audit and Stage 9 checkpoint
 
 **Interfaces:**
 - Produces: the final offline verification record without converting pending hardware checks into pass.
 
-- [ ] **Step 1: Run a requirement-by-requirement audit** against the design, all eight plans, package graph, Topics/TF/QoS, Map Bundle, state machine, relocalizer, and validation script.
-- [ ] **Step 2: Run final verification**:
+- [x] **Step 1: Run a requirement-by-requirement audit** against the design, all eight plans, package graph, Topics/TF/QoS, Map Bundle, state machine, relocalizer, and validation script.
+- [x] **Step 2: Run final verification**:
 
 ```bash
 ./scripts/build.sh
@@ -111,13 +111,13 @@ git submodule status --recursive
 
 Expected: all offline tests pass; dry-run enumerates every hardware check without claiming it ran; protected frontend commits remain unchanged.
 
-- [ ] **Step 3: Update documentation** with the exact final state:
+- [x] **Step 3: Update documentation** with the exact final state:
 
 ```text
 Offline implementation and verification complete; JT128 hardware validation pending.
 ```
 
-- [ ] **Step 4: Commit and push**:
+- [x] **Step 4: Commit and push**:
 
 ```bash
 git add src scripts tests docs README.md
