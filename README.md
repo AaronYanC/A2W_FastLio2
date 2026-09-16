@@ -20,6 +20,25 @@ ROS2 分支，不使用普通原版 FAST_LIO。上游源码以固定提交的 Gi
 本仓库只负责 PC 端 FAST-LIO2。脚本不会登录或修改 A2-W 主机，不会调整机器人
 网络、雷达目标地址或驱动参数，也不会停止宇树自带 SLAM 服务。
 
+## 快速运行
+
+完整的模式说明、启动顺序、Topic/Service、地图保存、Localization、自动重定位和实机
+验收命令请见：[完整运行与使用手册](docs/RUNTIME_USER_GUIDE.md)。
+
+```bash
+# 仅运行 FAST-LIO
+./scripts/run_fastlio_jt128_pc.sh
+
+# 完整 Mapping（与 Localization 互斥）
+./scripts/run_a2w_mapping.sh
+
+# 使用已有 Map Bundle 定位（与 Mapping 互斥）
+./scripts/run_a2w_localization.sh maps/factory_map
+```
+
+冷启动 Localization 当前依赖 FAST-LIO 起点与地图起点邻近；启动时不会直接执行全地图
+Scan Context。请先阅读手册中的“Localization 冷启动如何获得初始位置”和实机验收限制。
+
 ## 下载与安装依赖
 
 ```bash
